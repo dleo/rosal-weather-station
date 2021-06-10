@@ -21,15 +21,18 @@
 #include <ArduinoJson.h>
 #include <EnvironmentCalculations.h>
 
+
 /**
    Pin definitions
 */
 #define WIND_SPD_PIN 14
-#define RAIN_PIN 25
+#define RAIN_PIN     25
 #define WIND_DIR_PIN 35
-#define VOLT_PIN 33
-#define PV_PIN 32  // ACS712
-#define TEMP_PIN 4 // DS18B20 hooked up to GPIO pin 4
+#define VOLT_PIN     33
+#define PV_PIN       32 // ACS712
+#define TEMP_PIN     4  // DS18B20 hooked up to GPIO pin 4
+
+
 
 /**
  * Objects
@@ -44,6 +47,8 @@ WiFiClientSecure net;
 PubSubClient mqtt(net);
 TaskHandle_t TransmitTask;
 TaskHandle_t ReadSensorTask;
+
+
 
 /**
    Variables and constants
@@ -71,8 +76,8 @@ int vin;
 String windDir = "";
 
 // Variables and constants used in tracking rainfall
-#define S_IN_DAY 86400
-#define S_IN_HR 3600
+#define S_IN_DAY   86400
+#define S_IN_HR     3600
 #define NO_RAIN_SAMPLES 2000
 #define SEALEVELPRESSURE_HPA (1013.25)
 volatile long rainTickList[NO_RAIN_SAMPLES];
@@ -95,38 +100,38 @@ float solarRadiation;
 float R3 = 100;
 
 //Variables for Solar Radiation
-float mVperAmpValue = 185;          // If using ACS712 current module : for 5A module key in 185, for 20A module key in 100, for 30A module key in 66
-float moduleMiddleVoltage = 1650;   // key in middle voltage value in mV. For 5V power supply key in 2500, for 3.3V power supply, key in 1650 mV
-float moduleSupplyVoltage = 3300;   // supply voltage to current sensor module in mV, default 5000mV, may use 3300mV
-float currentSampleRead = 0;        // to read the value of a sample
-float currentLastSample = 0;        // to count time for each sample. Technically 1 milli second 1 sample is taken
-float currentSampleSum = 0;         // accumulation of sample readings
-float currentSampleCount = 0;       // to count number of sample
-float currentMean;                  // to calculate the average value from all samples
-float finalCurrent;                 // the final current reading without taking offset value
-float finalCurrent2;                // the final current reading
-float ShortCircuitCurrentSTC = 2.9; // Key in the Short Circuit Current (At STC condition) of your Solar Panel or Solar Cell. Value 9 showing 9.0A Isc Panel.
-float irradiation = 0.00;           // This shows the irradiation level in W/m2.
+float mVperAmpValue = 185;                  // If using ACS712 current module : for 5A module key in 185, for 20A module key in 100, for 30A module key in 66
+float moduleMiddleVoltage = 1650;           // key in middle voltage value in mV. For 5V power supply key in 2500, for 3.3V power supply, key in 1650 mV
+float moduleSupplyVoltage = 3300;           // supply voltage to current sensor module in mV, default 5000mV, may use 3300mV
+float currentSampleRead  = 0;               // to read the value of a sample
+float currentLastSample  = 0;               // to count time for each sample. Technically 1 milli second 1 sample is taken
+float currentSampleSum   = 0;               // accumulation of sample readings
+float currentSampleCount = 0;               // to count number of sample
+float currentMean ;                         // to calculate the average value from all samples
+float finalCurrent ;                        // the final current reading without taking offset value
+float finalCurrent2 ;                       // the final current reading
+float ShortCircuitCurrentSTC = 0.057;       // Key in the Short Circuit Current (At STC condition) of your Solar Panel or Solar Cell. Value 9 showing 9.0A Isc Panel.
+float irradiation = 0.00;                   // This shows the irradiation level in W/m2.
 /* 1.1 - Offset DC Current */
-int OffsetRead = 0;          // To switch between functions for auto callibation purpose
-float currentOffset = 0.00;  // to Offset deviation and accuracy. Offset any fake current when no current operates.
-                             // the offset will automatically done when you press the <SELECT> button on the LCD display module.
-                             // you may manually set offset here if you do not have LCD shield
-float offsetLastSample = 0;  // to count time for each sample. Technically 1 milli second 1 sample is taken
-float offsetSampleCount = 0; // to count number of sample.
+int   OffsetRead = 0;                   // To switch between functions for auto callibation purpose
+float currentOffset =0.00;              // to Offset deviation and accuracy. Offset any fake current when no current operates. 
+                                        // the offset will automatically done when you press the <SELECT> button on the LCD display module.
+                                        // you may manually set offset here if you do not have LCD shield
+float offsetLastSample = 0;             // to count time for each sample. Technically 1 milli second 1 sample is taken
+float offsetSampleCount = 0;            // to count number of sample.
 
 /* 1.2 - Average Accumulate Irradiation */
-
-float accumulateIrradiation = 0;              // Amount of accumulate irradiation
-unsigned long startMillisIrradiation;         // start counting time for irradiation energy
-unsigned long currentMillisIrradiation;       // current counting time for irradiation energy
-const unsigned long periodIrradiation = 1000; // refresh every X seconds (in seconds) Default 1000 = 1 second
-float FinalAccumulateIrradiationValue = 0;    // shows the final accumulate irradiation reading
-
-/**
+               
+float accumulateIrradiation = 0;                          // Amount of accumulate irradiation
+unsigned long startMillisIrradiation;                     // start counting time for irradiation energy
+unsigned long currentMillisIrradiation;                   // current counting time for irradiation energy
+const unsigned long periodIrradiation = 1000;             // refresh every X seconds (in seconds) Default 1000 = 1 second 
+float FinalAccumulateIrradiationValue = 0;                // shows the final accumulate irradiation reading
+                                                    
+ /**
     Deep Sleep Time
  */
-/**
+ /**
 //const int UpdateInterval = 1 * 60 * 1000000;  // e.g. 0.33 * 60 * 1000000; // Sleep time
 //const int UpdateInterval = 15 * 60 * 1000000;  // e.g. 15 * 60 * 1000000; // // Example for a 15-Min update interval 15-mins x 60-secs * 10000
 */
@@ -143,67 +148,72 @@ char pass[] = "Rosal16232425";
 IPAddress mqttServer(192, 168, 255, 121);
 char *mqttCredentials[] = {"moss", "12345678"};
 
+
 /**
    Setup function
 */
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   Serial.println("\nWeather station powered on.\n");
   delay(10000);
+  // Begin setup sensors
   Wire.begin();
   sensors.begin();
-  //Wire.begin(22, 21);   // for BH1750
-  while (!bme.begin())
+  while(!bme.begin())
   {
     Serial.println("Could not find BME280 sensor!");
     delay(1000);
   }
-  uv.begin(0x60); // 0x60 is the address of the GY1145 module*/
+  uv.begin(0x60);                                         // 0x60 is the address of the GY1145 module*/
   lightMeter.begin();
+  // Setup WiFi
   wifiConnect();
+  // Setup MQTT Broker
   connectAWS();
+  uint16_t size =1024;
+  mqtt.setBufferSize(size);
   mqtt.setServer(AWS_IOT_ENDPOINT, 8883);
   mqtt.setCallback(callback);
 
   // Wind speed sensor setup. The windspeed is calculated according to the number
   //  of ticks per second. Timestamps are captured in the interrupt, and then converted
   //  into mph.
-  pinMode(WIND_DIR_PIN, INPUT); // Wind dir sensor
-  pinMode(WIND_SPD_PIN, INPUT); // Wind speed sensor
+  pinMode(WIND_DIR_PIN, INPUT);                           // Wind dir sensor
+  pinMode(WIND_SPD_PIN, INPUT);                           // Wind speed sensor
   attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, FALLING);
 
   // Rain sensor setup. Rainfall is tracked by ticks per second, and timestamps of
   //  ticks are tracked so rainfall can be "aged" (i.e., rain per hour, per day, etc)
-  pinMode(RAIN_PIN, INPUT); // Rain sensor
+  pinMode(RAIN_PIN, INPUT);     // Rain sensor
   attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
   // Zero out the timestamp array.
-  for (int i = 0; i < NO_RAIN_SAMPLES; i++)
-    rainTickList[i] = 0;
+  for (int i = 0; i < NO_RAIN_SAMPLES; i++) rainTickList[i] = 0;
 
   // ESP32 Deep SLeep Mode
   // esp_deep_sleep_enable_timer_wakeup(UpdateInterval);
   // Serial.println("Going to sleep now...");
   // esp_deep_sleep_start();
-  startMillisIrradiation = millis(); /* Record initial starting time for daily irradiation */
+  startMillisIrradiation = millis();                // Record initial starting time for daily irradiation
   //We create a thread for send data
   xTaskCreatePinnedToCore(
-      sendData,      /* Task function. */
-      "sendData",    /* name of task. */
-      10000,         /* Stack size of task */
-      NULL,          /* parameter of the task */
-      1,             /* priority of the task */
-      &TransmitTask, /* Task handle to keep track of created task */
-      1);            /* pin task to core 1 */
+                    sendData,                       // Task function.
+                    "sendData",                     // name of task.
+                    10000,                          // Stack size of task
+                    NULL,                           // parameter of the task
+                    1,                              // priority of the task
+                    &TransmitTask,                  // Task handle to keep track of created task
+                    1                               // pin task to core 1
+  );
   // We create a thread for read data from sensors
   xTaskCreatePinnedToCore(
-      readSensorsData,   /* Task function. */
-      "readSensorsData", /* name of task. */
-      10000,             /* Stack size of task */
-      NULL,              /* parameter of the task */
-      1,                 /* priority of the task */
-      &ReadSensorTask,   /* Task handle to keep track of created task */
-      1);                /* pin task to core 1 */
+                    readSensorsData,                // Task function.
+                    "readSensorsData",              // name of task
+                    10000,                          // Stack size of task
+                    NULL,                           // parameter of the task
+                    1,                              // priority of the task 
+                    &ReadSensorTask,                // Task handle to keep track of created task
+                    1                             // pin task to core 1
+  );
   delay(500);
 }
 
@@ -221,19 +231,25 @@ void connectAWS()
 /**
  * Loop function
  */
-void loop()
-{
-  printData(); // Print all the sensors data on the serial monitor
+void loop() {
+  printData();          // Print all the sensors data on the serial monitor
+  //sendData();
+  //readDataFromSensibleSensor();
   delay(30000);
+}
+
+void readDataFromSensibleSensor()
+{
+  // Reading DS18B20 sensor
+  sensors.requestTemperatures();
+  outTemperature = sensors.getTempCByIndex(0);
 }
 
 /**
  * Connect to MQTT Broker
  */
-void connectToMqtt()
-{
-  if (!mqtt.connected())
-  {
+void connectToMqtt() {
+  if (!mqtt.connected()) {
     reconnect();
   }
   mqtt.loop();
@@ -242,13 +258,13 @@ void connectToMqtt()
 /**
  * Sent data to MQTT broker
  */
-void sendData(void *pvParameters)
-{
+void sendData(void *pvParameters) {
   while (true)
   {
     connectToMqtt();
     Serial.print("Attempting to publishMQTT...");
-    StaticJsonDocument<400> doc;
+    const int capacity = JSON_OBJECT_SIZE(16);
+    StaticJsonDocument<capacity> doc;
     doc["time"] = millis();
     doc["altitude"] = altitude;
     doc["humidity"] = int(humidity);
@@ -265,9 +281,10 @@ void sendData(void *pvParameters)
     doc["heat-index"] = heatIndex;
     doc["battery-level"] = batteryVolt;
     doc["in-temperature"] = temperature;
-    char jsonBuffer[1024];
-    //Publish all
+    char jsonBuffer[512];
+    
     serializeJson(doc, jsonBuffer); // print to client;
+    // By default, PubSubClient limits the message size to 256 bytes (including header); see the documentation.
     if (!mqtt.publish("weather/summary", jsonBuffer))
       pubSubErr(mqtt.state());
     // Publish details
@@ -328,15 +345,15 @@ void sendData(void *pvParameters)
       pubSubErr(mqtt.state());
     delay(5000);
     **/
-    delay(60000);
+    delay(10000);
   }
+  
 }
 
 /**
  * Publish mqtt errors
  */
-void pubSubErr(int8_t MQTTErr)
-{
+void pubSubErr(int8_t MQTTErr) {
   if (MQTTErr == MQTT_CONNECTION_TIMEOUT)
     Serial.print("Connection tiemout");
   else if (MQTTErr == MQTT_CONNECTION_LOST)
@@ -362,21 +379,16 @@ void pubSubErr(int8_t MQTTErr)
 /**
  * Connect MQTT
  */
-void reconnect()
-{
+void reconnect() {
   // Loop until we're reconnected
-  while (!mqtt.connected())
-  {
+  while (!mqtt.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (mqtt.connect("sdk-nodejs-4ef74440-f98c-4451-af49-b8cc98038e51"))
-    {
+    if (mqtt.connect("sdk-nodejs-4ef74440-f98c-4451-af49-b8cc98038e51")) {
       Serial.println("connected");
       // Subscribe
       mqtt.subscribe("weather/#");
-    }
-    else
-    {
+    } else {
       Serial.print("failed, reason -> ");
       pubSubErr(mqtt.state());
       Serial.println(" try again in 5 seconds");
@@ -389,8 +401,7 @@ void reconnect()
 /**
  * Wifi Network
  */
-bool wifiConnect()
-{
+bool wifiConnect() {
   delay(10);
   // We start by connecting to a WiFi network
   Serial.println();
@@ -399,12 +410,11 @@ bool wifiConnect()
   WiFi.setHostname(THINGNAME);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-
+ 
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
@@ -417,12 +427,11 @@ bool wifiConnect()
  */
 void readSensorsData(void *pvParameters)
 {
-  while (true)
-  {
+  while (true) {
     // Reading BME280 sensor
     bme.read(pressure, temperature, humidity, BME280::TempUnit_Celsius, BME280::PresUnit_hPa);
-    EnvironmentCalculations::AltitudeUnit envAltUnit = EnvironmentCalculations::AltitudeUnit_Meters;
-    EnvironmentCalculations::TempUnit envTempUnit = EnvironmentCalculations::TempUnit_Celsius;
+    EnvironmentCalculations::AltitudeUnit envAltUnit  =  EnvironmentCalculations::AltitudeUnit_Meters;
+    EnvironmentCalculations::TempUnit     envTempUnit =  EnvironmentCalculations::TempUnit_Celsius;
     altitude = EnvironmentCalculations::Altitude(pressure, envAltUnit, SEALEVELPRESSURE_HPA, envTempUnit);
     dewPoint = EnvironmentCalculations::DewPoint(temperature, humidity, envTempUnit);
     heatIndex = EnvironmentCalculations::HeatIndex(temperature, humidity, envTempUnit);
@@ -430,7 +439,7 @@ void readSensorsData(void *pvParameters)
     // Reading DS18B20 sensor
     sensors.requestTemperatures();
     outTemperature = sensors.getTempCByIndex(0);
-
+    
     // Reading GY1145 UV sensor
     UVindex = uv.readUV();
     // the index is multiplied by 100 so to get the
@@ -439,16 +448,16 @@ void readSensorsData(void *pvParameters)
     // Reading BH1750 sensor
     lux = lightMeter.readLightLevel();
     // Reading Battery Level in %
-    float val = analogRead(VOLT_PIN); //reads the analog input
+    float val = analogRead(VOLT_PIN);       //reads the analog input
     //Vout = (val * 3.3 ) / 4095.0;           // formula for calculating voltage out
-    batteryVolt = Vout * (R2 + R1) / R2; // formula for calculating voltage in
-    // Read Weather Meters Datas ( Wind Speed, Rain Fall and Wind Direction )
+    batteryVolt = Vout * ( R2 + R1) / R2 ;  // formula for calculating voltage in
+    
     calculateIrradiation();
     static unsigned long outLoopTimer = 0;
     static unsigned long wundergroundUpdateTimer = 0;
     static unsigned long clockTimer = 0;
     static unsigned long tempMSClock = 0;
-    /**
+    // Read Weather Meters Datas ( Wind Speed, Rain Fall and Wind Direction )
     // Create a seconds clock based on the millis() count. We use this
     //  to track rainfall by the second. We've done this because the millis()
     //  count overflows eventually, in a way that makes tracking time stamps
@@ -502,16 +511,14 @@ void readSensorsData(void *pvParameters)
         rainLastDayStart = i;
       }
     }
-    */
-    delay(100); // We need define some delay for sensor like DS18B20
+    delay(100);     // We need define some delay for sensor like DS18B20
   }
 }
 
 /**
  * Keep track of when the last tick came in on the wind sensor.
  */
-void windTick(void)
-{
+void windTick(void) {
   timeSinceLastTick = millis() - lastTick;
   lastTick = millis();
 }
@@ -519,54 +526,35 @@ void windTick(void)
 /**
  * Capture timestamp of when the rain sensor got tripped.
  */
-void rainTick(void)
-{
+void rainTick(void) {
   rainTickList[rainTickIndex++] = secsClock;
-  if (rainTickIndex == NO_RAIN_SAMPLES)
-    rainTickIndex = 0;
+  if (rainTickIndex == NO_RAIN_SAMPLES) rainTickIndex = 0;
   rainTicks++;
 }
 
 /**
  * Reading wind direction
  */
-void windDirCalc()
-{
+void windDirCalc(){
 
   vin = analogRead(WIND_DIR_PIN);
 
-  if (vin < 150)
-    windDir = "202.5";
-  else if (vin < 300)
-    windDir = "180";
-  else if (vin < 400)
-    windDir = "247.5";
-  else if (vin < 600)
-    windDir = "225";
-  else if (vin < 900)
-    windDir = "292.5";
-  else if (vin < 1100)
-    windDir = "270";
-  else if (vin < 1500)
-    windDir = "112.5";
-  else if (vin < 1700)
-    windDir = "135";
-  else if (vin < 2250)
-    windDir = "337.5";
-  else if (vin < 2350)
-    windDir = "315";
-  else if (vin < 2700)
-    windDir = "67.5";
-  else if (vin < 3000)
-    windDir = "90";
-  else if (vin < 3200)
-    windDir = "22.5";
-  else if (vin < 3400)
-    windDir = "45";
-  else if (vin < 4000)
-    windDir = "0";
-  else
-    windDir = "0";
+  if      (vin < 150) windDir = "202.5";
+  else if (vin < 300) windDir = "180";
+  else if (vin < 400) windDir = "247.5";
+  else if (vin < 600) windDir = "225";
+  else if (vin < 900) windDir = "292.5";
+  else if (vin < 1100) windDir = "270";
+  else if (vin < 1500) windDir = "112.5";
+  else if (vin < 1700) windDir = "135";
+  else if (vin < 2250) windDir = "337.5";
+  else if (vin < 2350) windDir = "315";
+  else if (vin < 2700) windDir = "67.5";
+  else if (vin < 3000) windDir = "90";
+  else if (vin < 3200) windDir = "22.5";
+  else if (vin < 3400) windDir = "45";
+  else if (vin < 4000) windDir = "0";
+  else windDir = "0";
 }
 
 /**
@@ -574,53 +562,30 @@ void windDirCalc()
  */
 void printData()
 {
-  Serial.print("Altitude: ");
-  Serial.println(altitude);
-  Serial.print("Air temperature [°C]: ");
-  Serial.println(temperature);
-  Serial.print("Humidity [%]: ");
-  Serial.println(int(humidity));
-  Serial.print("Barometric pressure [hPa]: ");
-  Serial.println(pressure);
-  Serial.print("UV: ");
-  Serial.println(UVindex);
-  Serial.print("Light: ");
-  Serial.print(lux);
-  Serial.println(" lx");
-  Serial.print("Windspeed: ");
-  Serial.print(windSpeed * 2.4);
-  Serial.println(" mph");
-  Serial.print("Wind dir: ");
-  Serial.print("  ");
-  Serial.println(windDir);
-  Serial.print("Rainfall last hour: ");
-  Serial.println(float(rainLastHour) * 0.011, 3);
-  Serial.print("Rainfall last day: ");
-  Serial.println(float(rainLastDay) * 0.011, 3);
-  Serial.print("Rainfall to date: ");
-  Serial.println(float(rainTicks) * 0.011, 3);
-  Serial.print("Battery Level: ");
-  Serial.println(batteryVolt);
-  Serial.print("Temperature in C: ");
-  Serial.print(outTemperature);
-  Serial.println();
-  Serial.print("Solar Radiation W/M2: ");
-  Serial.println(irradiation);
-  Serial.print("Dew Point: ");
-  Serial.println(dewPoint);
-  Serial.print("Heat Index: ");
-  Serial.println(heatIndex);
-  Serial.print(FinalAccumulateIrradiationValue);
-  Serial.println(" Wh/m2/day");
+  Serial.print("Altitude: "); Serial.println(altitude);
+  Serial.print("Air temperature [°C]: "); Serial.println(temperature);
+  Serial.print("Humidity [%]: "); Serial.println(int(humidity));
+  Serial.print("Barometric pressure [hPa]: "); Serial.println(pressure);
+  Serial.print("UV: "); Serial.println(UVindex);
+  Serial.print("Light: ");  Serial.print(lux);  Serial.println(" lx");
+  Serial.print("Windspeed: "); Serial.print(windSpeed * 2.4); Serial.println(" mph");
+  Serial.print("Wind dir: ");  Serial.print("  "); Serial.println(windDir);
+  Serial.print("Rainfall last hour: "); Serial.println(float(rainLastHour) * 0.011, 3);
+  Serial.print("Rainfall last day: ");  Serial.println(float(rainLastDay)*0.011, 3);
+  Serial.print("Rainfall to date: ");   Serial.println(float(rainTicks)*0.011, 3);
+  Serial.print("Battery Level: "); Serial.println(batteryVolt);
+  Serial.print("Temperature in C: ");   Serial.print(outTemperature); Serial.println();
+  Serial.print("Solar Radiation W/M2: ");   Serial.println(irradiation);
+  Serial.print("Dew Point: "); Serial.println(dewPoint);
+  Serial.print("Heat Index: "); Serial.println(heatIndex);
+  Serial.print(FinalAccumulateIrradiationValue); Serial.println(" Wh/m2/day"); 
 }
 
-void callback(char *topic, byte *payload, unsigned int length)
-{
+void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i = 0; i < length; i++)
-  {
+  for (int i=0;i<length;i++) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
@@ -629,54 +594,35 @@ void callback(char *topic, byte *payload, unsigned int length)
 /**
  * Calculate solar irradiation from ACS712
  */
-void calculateIrradiation()
-{
+void calculateIrradiation() {
   /* 1- DC Current & Irradiation */
-
-  if (millis() >= currentLastSample + 1) /* every 1 milli second taking 1 reading */
+  
+  if(millis() >= currentLastSample + 1 )                                                                          /* every 100 milli second taking 1 reading */
   {
-    currentSampleRead = analogRead(PV_PIN) - ((moduleMiddleVoltage / moduleSupplyVoltage) * 1024); /* read the sample value */
-    currentSampleSum = currentSampleSum + currentSampleRead;                                       /* accumulate value with older sample readings*/
-    currentSampleCount = currentSampleCount + 1;                                                   /* to move on to the next following count */
-    currentLastSample = millis();                                                                  /* to reset the time again so that next cycle can start again*/
+    currentSampleRead = analogRead(PV_PIN)-((moduleMiddleVoltage/moduleSupplyVoltage)*1024);                      /* read the sample value */ 
+    currentSampleSum = currentSampleSum + currentSampleRead ;                                                     /* accumulate value with older sample readings*/  
+    currentSampleCount = currentSampleCount + 1;                                                                  /* to move on to the next following count */
+    currentLastSample = millis();                                                                                 /* to reset the time again so that next cycle can start again*/ 
   }
 
-  if (currentSampleCount == 1000) /* after 1000 count or 1000 milli seconds (1 second), do the calculation and display value*/
+  if(currentSampleCount == 10)                                                                                     /* after 10 count or 1000 milli seconds (1 second), do the calculation and display value*/
   {
-    currentMean = currentSampleSum / currentSampleCount;                           /* calculate average value of all sample readings taken*/
-    finalCurrent = (((currentMean / 1024) * moduleSupplyVoltage) / mVperAmpValue); /* calculate the final current (without offset)*/
-    finalCurrent2 = finalCurrent + currentOffset;                                  /* The final current */
-    irradiation = (finalCurrent2 / ShortCircuitCurrentSTC * 1000);
-    currentSampleSum = 0;   /* to reset accumulate sample values for the next cycle */
-    currentSampleCount = 0; /* to reset number of sample for the next cycle */
-  }
-  /* 1.1 - Offset DC Current */
-
-  if (OffsetRead == 1)
-  {
-    currentOffset = 0;                    /* set back currentOffset as default first*/
-    if (millis() >= offsetLastSample + 1) /* offset 1 - to centralise analogRead waveform*/
-    {
-      offsetSampleCount = offsetSampleCount + 1;
-      offsetLastSample = millis();
-    }
-
-    if (offsetSampleCount == 2500)   /* need to wait awhile as to get new value before offset take into calculation.  */
-    {                                /* So this code is to delay 2.5 seconds after button pressed */
-      currentOffset = -finalCurrent; /* to offset values */
-      OffsetRead = 0;                /* until next offset button is pressed*/
-      offsetSampleCount = 0;         /* to reset the time again so that next cycle can start again */
-    }
-  }
+    currentMean = currentSampleSum/currentSampleCount;                                                            /* calculate average value of all sample readings taken*/
+    finalCurrent = (((currentMean /1024)*moduleSupplyVoltage)/mVperAmpValue);                                     /* calculate the final current (without offset)*/
+    finalCurrent2 = finalCurrent + currentOffset;                                                                 /* The final current */
+    irradiation = (finalCurrent2/(ShortCircuitCurrentSTC*10));
+    currentSampleSum = 0;                                                                                         /* to reset accumulate sample values for the next cycle */
+    currentSampleCount= 0;                                                                                        /* to reset number of sample for the next cycle */
+  }    
 
   /* 1.2 - Average Accumulate Irradiation */
 
-  currentMillisIrradiation = millis(); /* Count the time for current */
+  currentMillisIrradiation = millis();                                                                 /* Count the time for current */
 
   if (currentMillisIrradiation - startMillisIrradiation >= periodIrradiation)
   {
-    accumulateIrradiation = irradiation / 3600 * (periodIrradiation / 1000); /* for smoothing calculation*/
-    FinalAccumulateIrradiationValue = FinalAccumulateIrradiationValue + accumulateIrradiation;
-    startMillisIrradiation = currentMillisIrradiation; /* Set the starting point again for next counting time */
+    accumulateIrradiation = irradiation/3600*(periodIrradiation/1000);                                /* for smoothing calculation*/
+    FinalAccumulateIrradiationValue =  FinalAccumulateIrradiationValue + accumulateIrradiation ;
+    startMillisIrradiation = currentMillisIrradiation ;                                               /* Set the starting point again for next counting time */
   }
 }
