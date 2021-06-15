@@ -8,6 +8,7 @@
    Libraries
 */
 #include "secrets.h"
+#include "faov.h"
 #include <BME280I2C.h>
 #include "Adafruit_SI1145.h"
 #include <BH1750.h>
@@ -20,6 +21,8 @@
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <EnvironmentCalculations.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 
 /**
@@ -37,6 +40,7 @@
 /**
  * Objects
  */
+WiFiUDP ntpUDP;
 WiFiClient client;
 BME280I2C bme;
 Adafruit_SI1145 uv = Adafruit_SI1145();
@@ -47,12 +51,15 @@ WiFiClientSecure net;
 PubSubClient mqtt(net);
 TaskHandle_t TransmitTask;
 TaskHandle_t ReadSensorTask;
+NTPClient timeClient(ntpUDP);             // By default 'pool.ntp.org' is used with 60 seconds update interval and
 
 
 
 /**
    Variables and constants
 */
+// Variable for eto
+float eto = 0;
 // Variables used in reading temp,pressure and humidity (BME280)
 float temperature, humidity, pressure;
 float altitude = 0;
@@ -80,6 +87,8 @@ String windDir = "";
 #define S_IN_HR     3600
 #define NO_RAIN_SAMPLES 2000
 #define SEALEVELPRESSURE_HPA (1013.25)
+#define LATITUDE (7.810944)                           //Latitude for Granja Rosal
+#define SEA_LEVEL 1500
 volatile long rainTickList[NO_RAIN_SAMPLES];
 volatile int rainTickIndex = 0;
 volatile int rainTicks = 0;
@@ -141,12 +150,6 @@ float FinalAccumulateIrradiationValue = 0;                // shows the final acc
 */
 char ssid[] = "Room";
 char pass[] = "Rosal16232425";
-
-/**
- * MQTT Broker setup
- */
-IPAddress mqttServer(192, 168, 255, 121);
-char *mqttCredentials[] = {"moss", "12345678"};
 
 
 /**
@@ -218,7 +221,7 @@ void setup() {
 }
 
 /**
- * 
+ * Setup for connect to AWS
  */
 void connectAWS()
 {
@@ -233,17 +236,9 @@ void connectAWS()
  */
 void loop() {
   printData();          // Print all the sensors data on the serial monitor
-  //sendData();
-  //readDataFromSensibleSensor();
   delay(30000);
 }
 
-void readDataFromSensibleSensor()
-{
-  // Reading DS18B20 sensor
-  sensors.requestTemperatures();
-  outTemperature = sensors.getTempCByIndex(0);
-}
 
 /**
  * Connect to MQTT Broker
@@ -263,9 +258,11 @@ void sendData(void *pvParameters) {
   {
     connectToMqtt();
     Serial.print("Attempting to publishMQTT...");
+    timeClient.update();
+
     const int capacity = JSON_OBJECT_SIZE(16);
     StaticJsonDocument<capacity> doc;
-    doc["time"] = millis();
+    doc["date-time"] = timeClient.getEpochTime();
     doc["altitude"] = altitude;
     doc["humidity"] = int(humidity);
     doc["pressure"] = int(pressure);
@@ -330,21 +327,6 @@ void sendData(void *pvParameters) {
     serializeJson(doc["in-temperature"], jsonBuffer); // print to client;
     if (!mqtt.publish("weather/in-temperature", jsonBuffer))
       pubSubErr(mqtt.state());
-    /**
-    DynamicJsonDocument jsonBuffer(JSON_OBJECT_SIZE(3) + 100);
-    JsonObject root = jsonBuffer.to<JsonObject>();
-    JsonObject state = root.createNestedObject("state");
-    JsonObject state_reported = state.createNestedObject("reported");
-    state_reported["value"] = random(100);
-    Serial.printf("Sending  [%s]: ", "topic_2");
-    serializeJson(root, Serial);
-    Serial.println();
-    char shadow[measureJson(root) + 1];
-    serializeJson(root, shadow, sizeof(shadow));
-    if (!mqtt.publish("topic_2", shadow))
-      pubSubErr(mqtt.state());
-    delay(5000);
-    **/
     delay(10000);
   }
   
@@ -386,8 +368,8 @@ void reconnect() {
     // Attempt to connect
     if (mqtt.connect("sdk-nodejs-4ef74440-f98c-4451-af49-b8cc98038e51")) {
       Serial.println("connected");
-      // Subscribe
-      mqtt.subscribe("weather/#");
+      // Subscribe, for example receive instructions
+      //mqtt.subscribe("weather/#");
     } else {
       Serial.print("failed, reason -> ");
       pubSubErr(mqtt.state());
@@ -511,6 +493,8 @@ void readSensorsData(void *pvParameters)
         rainLastDayStart = i;
       }
     }
+    // Calculate eto
+    eto = calculateEto();
     delay(100);     // We need define some delay for sensor like DS18B20
   }
 }
@@ -579,6 +563,7 @@ void printData()
   Serial.print("Dew Point: "); Serial.println(dewPoint);
   Serial.print("Heat Index: "); Serial.println(heatIndex);
   Serial.print(FinalAccumulateIrradiationValue); Serial.println(" Wh/m2/day"); 
+  Serial.print(eto); Serial.println(" ETo");
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -625,4 +610,15 @@ void calculateIrradiation() {
     FinalAccumulateIrradiationValue =  FinalAccumulateIrradiationValue + accumulateIrradiation ;
     startMillisIrradiation = currentMillisIrradiation ;                                               /* Set the starting point again for next counting time */
   }
+}
+
+/**
+ * Calculate eto
+ */
+float calculateEto() {
+  float svp = svp_from_t(humidity);
+  float avp = avp_from_tdew(dewPoint);
+  float dsvp = delta_svp(temperature);
+  float psy = psy_const(pressure);
+  return fao56_penman_monteith(irradiation, temperature, windSpeed * 2.4, svp, humidity, avp, dsvp, psy);
 }
