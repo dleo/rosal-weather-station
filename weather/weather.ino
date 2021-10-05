@@ -34,6 +34,7 @@
 #define VOLT_PIN     33
 #define PV_PIN       32 // ACS712
 #define TEMP_PIN     4  // DS18B20 hooked up to GPIO pin 4
+#define LED_BUILTIN  2
 
 
 
@@ -141,46 +142,48 @@ unsigned long currentMillisIrradiation;                   // current counting ti
 const unsigned long periodIrradiation = 1000;             // refresh every X seconds (in seconds) Default 1000 = 1 second 
 float FinalAccumulateIrradiationValue = 0;                // shows the final accumulate irradiation reading
                                                     
- /**
-    Deep Sleep Time
- */
- /**
-//const int UpdateInterval = 1 * 60 * 1000000;  // e.g. 0.33 * 60 * 1000000; // Sleep time
-//const int UpdateInterval = 15 * 60 * 1000000;  // e.g. 15 * 60 * 1000000; // // Example for a 15-Min update interval 15-mins x 60-secs * 10000
+/**
+  Deep Sleep Time
 */
+const int UpdateInterval = 10 * 60 * 1000000;  // e.g. 15 * 60 * 1000000; // // Example for a 5-Min update interval 5-mins x 60-secs * 10000
+const int UptimeInterval = 60 * 1000;         // e.g. Seconds uptime before go sleep
+
 
 /**
   WiFi
 */
+/*
+char ssid[] = "MERLIN";
+char pass[] = "30d96f68fd";*/
+
 char ssid[] = "Room";
 char pass[] = "Rosal16232425";
+
+bool led = false;
+bool published = false;
 
 
 /**
    Setup function
 */
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  
   Serial.begin(115200);
   Serial.println("\nWeather station powered on.\n");
-  delay(10000);
+  published = false;
   // Begin setup sensors
   Wire.begin();
   sensors.begin();
   while(!bme.begin())
   {
     Serial.println("Could not find BME280 sensor!");
-    delay(1000);
   }
   uv.begin(0x60);                                         // 0x60 is the address of the GY1145 module*/
   lightMeter.begin();
-  // Setup WiFi
-  wifiConnect();
-  // Setup MQTT Broker
-  connectAWS();
-  uint16_t size =1024;
-  mqtt.setBufferSize(size);
-  mqtt.setServer(AWS_IOT_ENDPOINT, 8883);
-  mqtt.setCallback(callback);
+
+  // Power off WiFi
+  wifiOff();
 
   // Wind speed sensor setup. The windspeed is calculated according to the number
   //  of ticks per second. Timestamps are captured in the interrupt, and then converted
@@ -196,10 +199,7 @@ void setup() {
   // Zero out the timestamp array.
   for (int i = 0; i < NO_RAIN_SAMPLES; i++) rainTickList[i] = 0;
 
-  // ESP32 Deep SLeep Mode
-  // esp_deep_sleep_enable_timer_wakeup(UpdateInterval);
-  // Serial.println("Going to sleep now...");
-  // esp_deep_sleep_start();
+  
   startMillisIrradiation = millis();                // Record initial starting time for daily irradiation
   //We create a thread for send data
   xTaskCreatePinnedToCore(
@@ -221,7 +221,6 @@ void setup() {
                     &ReadSensorTask,                // Task handle to keep track of created task
                     1                             // pin task to core 1
   );
-  delay(500);
 }
 
 /**
@@ -239,8 +238,32 @@ void connectAWS()
  * Loop function
  */
 void loop() {
-  printData();          // Print all the sensors data on the serial monitor
-  delay(30000);
+  int uptime = millis();
+  if (uptime%UptimeInterval == 0) {
+    sleep();
+  }
+  if (uptime%5000 == 0) {
+    printData();                        // Print all the sensors data on the serial monitor 
+    switchLed(); 
+  }
+}
+
+/**
+ * Shutdown WiFi
+ */
+void wifiOff() {
+  WiFi.mode(WIFI_OFF);
+}
+
+/**
+ * Sleep
+ */
+void sleep() {
+  wifiOff();
+  // ESP32 Deep SLeep Mode
+  esp_deep_sleep_enable_timer_wakeup(UpdateInterval);
+  Serial.println("Going to sleep now...");
+  esp_deep_sleep_start();
 }
 
 
@@ -248,6 +271,11 @@ void loop() {
  * Connect to MQTT Broker
  */
 void connectToMqtt() {
+  // Setup for mqtt
+  uint16_t size =1024;
+  mqtt.setBufferSize(size);
+  mqtt.setServer(AWS_IOT_ENDPOINT, 8883);
+  mqtt.setCallback(callback);
   if (!mqtt.connected()) {
     reconnect();
   }
@@ -258,80 +286,90 @@ void connectToMqtt() {
  * Sent data to MQTT broker
  */
 void sendData(void *pvParameters) {
-  while (true)
-  {
-    connectToMqtt();
-    Serial.print("Attempting to publishMQTT...");
-    timeClient.update();
-
-    const int capacity = JSON_OBJECT_SIZE(16);
-    StaticJsonDocument<capacity> doc;
-    doc["date-time"] = timeClient.getEpochTime();
-    doc["altitude"] = altitude;
-    doc["humidity"] = int(humidity);
-    doc["pressure"] = int(pressure);
-    doc["uv"] = UVindex;
-    doc["light"] = lux;
-    doc["wind-speed"] = windSpeed;
-    doc["rain-hour"] = float(rainLastHour) * 0.011;
-    doc["rain-day"] = float(rainLastDay) * 0.011;
-    doc["rain"] = float(rainTicks) * 0.011;
-    doc["out-temperature"] = outTemperature;
-    doc["solar-radiation"] = irradiation;
-    doc["dew-point"] = dewPoint;
-    doc["heat-index"] = heatIndex;
-    doc["battery-level"] = batteryVolt;
-    doc["in-temperature"] = temperature;
-    char jsonBuffer[512];
-    
-    serializeJson(doc, jsonBuffer); // print to client;
-    // By default, PubSubClient limits the message size to 256 bytes (including header); see the documentation.
-    if (!mqtt.publish("weather/summary", jsonBuffer))
-      pubSubErr(mqtt.state());
-    // Publish details
-    serializeJson(doc["altitude"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/altitude", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["humidity"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/humidity", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["pressure"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/pressure", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["uv"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/uv", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["light"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/light", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["wind-speed"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/wind-speed", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["rain-hour"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/rain-hour", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["rain-day"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/rain-day", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["rain"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/rain", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["out-temperature"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/out-temperature", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["dew-point"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/dew-point", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["heat-index"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/heat-index", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["battery-level"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/battery-level", jsonBuffer))
-      pubSubErr(mqtt.state());
-    serializeJson(doc["in-temperature"], jsonBuffer); // print to client;
-    if (!mqtt.publish("weather/in-temperature", jsonBuffer))
-      pubSubErr(mqtt.state());
-    delay(10000);
+  while (true) {
+    if (!published)
+    {
+      if (WiFi.status() == WL_CONNECTED) {
+        // Setup MQTT Broker
+        connectAWS();
+        connectToMqtt();
+        Serial.println("Attempting to publish MQTT...");
+        timeClient.update();
+        const int capacity = JSON_OBJECT_SIZE(16);
+        StaticJsonDocument<capacity> doc;
+        doc["date-time"] = timeClient.getEpochTime();
+        doc["altitude"] = altitude;
+        doc["humidity"] = int(humidity);
+        doc["pressure"] = int(pressure);
+        doc["uv"] = UVindex;
+        doc["light"] = lux;
+        doc["wind-speed"] = windSpeed;
+        doc["rain-hour"] = float(rainLastHour) * 0.011;
+        doc["rain-day"] = float(rainLastDay) * 0.011;
+        doc["rain"] = float(rainTicks) * 0.011;
+        doc["out-temperature"] = outTemperature;
+        doc["solar-radiation"] = irradiation;
+        doc["dew-point"] = dewPoint;
+        doc["heat-index"] = heatIndex;
+        doc["battery-level"] = batteryVolt;
+        doc["in-temperature"] = temperature;
+        char jsonBuffer[512];
+        
+        serializeJson(doc, jsonBuffer); // print to client;
+        // By default, PubSubClient limits the message size to 256 bytes (including header); see the documentation.
+        if (!mqtt.publish("weather/summary", jsonBuffer))
+          pubSubErr(mqtt.state());
+        // Publish details
+        serializeJson(doc["altitude"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/altitude", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["humidity"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/humidity", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["pressure"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/pressure", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["uv"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/uv", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["light"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/light", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["wind-speed"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/wind-speed", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["rain-hour"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/rain-hour", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["rain-day"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/rain-day", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["rain"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/rain", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["out-temperature"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/out-temperature", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["dew-point"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/dew-point", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["heat-index"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/heat-index", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["battery-level"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/battery-level", jsonBuffer))
+          pubSubErr(mqtt.state());
+        serializeJson(doc["in-temperature"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/in-temperature", jsonBuffer))
+          pubSubErr(mqtt.state());
+        Serial.println("Finished publishMQTT...");
+        published = true;
+        wifiOff();
+      } else {
+        Serial.println("Can't publish because it doesn't connected to WiFi. Trying again");
+        wifiConnect();
+      }
+    }
   }
   
 }
@@ -368,7 +406,7 @@ void pubSubErr(int8_t MQTTErr) {
 void reconnect() {
   // Loop until we're reconnected
   while (!mqtt.connected()) {
-    Serial.print("Attempting MQTT connection...");
+    Serial.println("Attempting MQTT re-connection...");
     // Attempt to connect
     if (mqtt.connect("sdk-nodejs-4ef74440-f98c-4451-af49-b8cc98038e51")) {
       Serial.println("connected");
@@ -379,7 +417,7 @@ void reconnect() {
       pubSubErr(mqtt.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
-      delay(5000);
+      delay(1000);
     }
   }
 }
@@ -388,16 +426,14 @@ void reconnect() {
  * Wifi Network
  */
 bool wifiConnect() {
-  delay(10);
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
-  WiFi.setHostname(THINGNAME);
+  delay(1);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
     Serial.print(".");
   }
  
@@ -406,6 +442,19 @@ bool wifiConnect() {
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
   return true;
+}
+
+/**
+ * Change Led Status
+ */
+void switchLed() {
+  if (led) {
+      digitalWrite(LED_BUILTIN, LOW);
+      led = false;
+      return;
+  }
+  digitalWrite(LED_BUILTIN, HIGH);
+  led = true;
 }
 
 /**
@@ -500,10 +549,11 @@ void readSensorsData(void *pvParameters)
     // Calculate eto
     eto = calculateEto();
     // Calculate moon phase
-    timeClient.update();
-    moonPhase = moonPhases(timeClient.getEpochTime());
-    moonPhaseString = moonPhaseToString(moonPhase);
-    delay(100);     // We need define some delay for sensor like DS18B20
+    if (WiFi.status() == WL_CONNECTED) {
+      timeClient.update();
+      moonPhase = moonPhases(timeClient.getEpochTime());
+      moonPhaseString = moonPhaseToString(moonPhase);
+    }
   }
 }
 
