@@ -1,7 +1,7 @@
 #include "weather.h"
 
 const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 4 * 3600;
+const long  gmtOffset_sec = -4 * 3600;
 const int   daylightOffset_sec = 3600;
 struct tm timeinfo;
 
@@ -29,21 +29,37 @@ void printTimeNextWake()
 /**
  *
  */
-void updateWake (void)
+long updateWake (void)
 {
+  long UpdateIntervalModified = 0;
+  // TODO: Adjust time based on battery
   int muliplierBatterySave = 1;
   if (lowBattery)
   {
     muliplierBatterySave = 4;
   }
   getLocalTime(&timeinfo);
-  //180 added to wipe out any RTC timing error vs NTP server - causing 2 WAKES back to back
-  nextUpdate = mktime(&timeinfo) + UpdateIntervalSeconds * muliplierBatterySave + 180;
-  nextUpdate = nextUpdate - nextUpdate % (UpdateIntervalSeconds * muliplierBatterySave);
+  int minutesToQuater = (14 - (timeinfo.tm_min %  15));                   // We used 14 for wake up 1 minute before
+  if (minutesToQuater<=0) {
+    minutesToQuater = 15;                                                  // Wake up in the next minute by default
+  }
+
+  nextUpdate = mktime(&timeinfo) + (minutesToQuater * 60);
+  /*
   // Intentional offset for data aquire before display unit updates
   // guarantees fresh data
   if (nextUpdate > 120)
   {
     nextUpdate -= 60;
   }
+  */
+
+  UpdateIntervalModified = nextUpdate - mktime(&timeinfo);
+  if (UpdateIntervalModified <= 0)
+  {
+    UpdateIntervalModified = 15;
+  }
+  printTimeNextWake();
+
+  return UpdateIntervalModified * SEC;
 }

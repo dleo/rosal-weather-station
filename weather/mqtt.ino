@@ -78,7 +78,7 @@ void sendData(struct sensorData *enviroment) {
         connectToMqtt();
         getLocalTime(&timeinfo);
         debug("Attempting to publish MQTT...");
-        const int capacity = JSON_OBJECT_SIZE(16);
+        const int capacity = JSON_OBJECT_SIZE(19);
         StaticJsonDocument<capacity> doc;
         doc["date-time"] = now();
         doc["altitude"] = enviroment->altitude;
@@ -98,6 +98,7 @@ void sendData(struct sensorData *enviroment) {
         doc["battery-level"] = enviroment->batteryVoltage;
         doc["in-temperature"] = enviroment->temperature;
         doc["eto"] = enviroment->eto;
+        doc["rx-signal"] = enviroment->rxSignal;
         char jsonBuffer[512];
         
         serializeJson(doc, jsonBuffer); // print to client;
@@ -150,11 +151,21 @@ void sendData(struct sensorData *enviroment) {
         serializeJson(doc["eto"], jsonBuffer); // print to client;
         if (!mqtt.publish("weather/eto", jsonBuffer))
           pubSubErr(mqtt.state());
+        serializeJson(doc["rx-signal"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/rx-signal", jsonBuffer))
+          pubSubErr(mqtt.state());
         debug("Finished publishMQTT...");
         published = true;
+        sleep(updateWake());
       } else {
         debug("Can't publish because it doesn't connected to WiFi. Trying again");
         wifiOn();
+      }
+    } else {
+      // We will check if has been more than 30 seconds up
+      long currentMillis = millis();
+      if ((currentMillis - initialMillis) >= (30 * SEC)) {
+        sleep(updateWake());
       }
     }
   } 

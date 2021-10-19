@@ -14,11 +14,7 @@ bool wifiOn() {
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
   }
- 
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  debug("WiFi connected. IP address: %s", WiFi.localIP());
 
   return true;
 }

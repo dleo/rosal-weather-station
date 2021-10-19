@@ -17,6 +17,7 @@ void readSensorsData(struct sensorData *environment) {
     readIrradiation(environment);
     readEto(environment);
     readMoonPhase(environment);
+    readRxSignal(environment);
 }
 
 /**
@@ -80,7 +81,7 @@ void readLux(struct sensorData *environment) {
 /**
  * Read from 1W DS1820B
  */
-void readTemperature (struct sensorData *environment) {
+void readTemperature(struct sensorData *environment) {
   temperatureSensor.requestTemperatures();
   environment->outTemperature = temperatureSensor.getTempCByIndex(0);
 
@@ -125,6 +126,15 @@ void readIrradiation(struct sensorData *environment) {
     accumulateIrradiation = environment->irradiation/3600*(periodIrradiation/1000);                                /* for smoothing calculation*/
     FinalAccumulateIrradiationValue =  FinalAccumulateIrradiationValue + accumulateIrradiation ;
     startMillisIrradiation = currentMillisIrradiation ;                                               /* Set the starting point again for next counting time */
+  }
+}
+
+/**
+ * Read Rx WiFi Signal
+ */
+void readRxSignal(struct sensorData *environment) {
+  if (WiFi.status() == WL_CONNECTED) {
+    environment->rxSignal = WiFi.RSSI();
   }
 }
 

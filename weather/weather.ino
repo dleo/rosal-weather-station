@@ -38,6 +38,7 @@
 #define TEMP_PIN     4  // DS18B20 hooked up to GPIO pin 4
 #define LED_BUILTIN  2
 #define WDT_TIMEOUT 60
+#define SEC 1E6          //Multiplier for uS based math
 
 // Variables and constants used in tracking rainfall
 #define S_IN_DAY   86400
@@ -101,6 +102,7 @@ struct sensorData
   char * moonPhaseString;
   int timestamp;
   float rain;
+  float rxSignal;
 };
 
 //rainfall is stored here for historical data uses RTC
@@ -159,9 +161,10 @@ const unsigned long periodIrradiation = 1000;             // refresh every X sec
 float FinalAccumulateIrradiationValue = 0;                // shows the final accumulate irradiation reading
 
 
-bool led = false;                                         // Init state of led
-bool published = false;                                   // Knows if published successfull
+bool led = true;                                         // Init state of led
+bool published = false;                                  // Knows if published successfull
 bool lowBattery = false;
+long initialMillis = 0;                                  // Initial millis on init
 
 
 /**
@@ -180,8 +183,9 @@ void setup() {
   pinMode(RAIN_PIN, INPUT);                               // Rain sensor
   
   Serial.begin(115200);
-  Serial.println("\nWeather station powered on.\n");
+  debug("Weather station powered on.");
   published = false;
+  initialMillis = millis();
   bootCount++;
 
   // Begin setup sensors
@@ -189,7 +193,7 @@ void setup() {
   temperatureSensor.begin();
   while(!bme.begin())
   {
-    Serial.println("Could not find BME280 sensor!");
+    debug("Could not find BME280 sensor!");
   }
   uv.begin(0x60);                                         // 0x60 is the address of the GY1145 module*/
   lightMeter.begin();
@@ -197,9 +201,10 @@ void setup() {
   // Power off WiFi for saving power
   wifiOff();
   // Identified reason for wakeup
-  wakeup_reason();
+  wakeupReason();
   // Check if we need publish
   // Use parallel for led blink and know if it's alive
+  /*
   xTaskCreatePinnedToCore(
                     switchLed,                // Task function.
                     "blinkTask",              // name of task
@@ -207,14 +212,16 @@ void setup() {
                     NULL,                     // parameter of the task
                     1,                        // priority of the task 
                     &BlinkTask,               // Task handle to keep track of created task
-                    2                         // pin task to core 1
+                    1                         // pin task to core 1
   );
+  */
   UpdateIntervalModified = nextUpdate - mktime(&timeinfo);
+  
   if (UpdateIntervalModified <= 0)
   {
-    UpdateIntervalModified = 3;
+    UpdateIntervalModified = 5 * msFactor;    // Seconds 
   }
-  //pet t
+  //pet the dog
   esp_task_wdt_reset();                       // Pet the dog!
   sleep(UpdateIntervalModified);
 }
@@ -222,20 +229,20 @@ void setup() {
 
 /**
 //===========================================================
-// wakeup_reason: action based on WAKE reason
+// wakeupReason: action based on WAKE reason
 // 1. Power up
 // 2. WAKE on EXT0 - increment rain tip gauge count and sleep
 // 3. WAKE on TIMER - send sensor data to IOT target
 //===========================================================
 //check for WAKE reason and respond accordingly
  */
-void wakeup_reason()
-{
-  esp_sleep_wakeup_cause_t wakeup_reason;
+void wakeupReason() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  esp_sleep_wakeup_cause_t wakeupReason;
 
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-  debug("Wakeup reason: %d\n", wakeup_reason);
-  switch (wakeup_reason)
+  wakeupReason = esp_sleep_get_wakeup_cause();
+  debug("Wakeup reason: %d\n", wakeupReason);
+  switch (wakeupReason)
   {
     //Rain Tip Gauge
     case ESP_SLEEP_WAKEUP_EXT0 :
@@ -248,27 +255,38 @@ void wakeup_reason()
     case ESP_SLEEP_WAKEUP_TIMER :
       debug("Wakeup caused by timer\n");
       published = false;
-      //Rainfall interrupt pin set up
-      delay(100); //possible settling time on pin to charge
-      attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
-      attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
-      // We create a thread for read data from sensors
-      xTaskCreatePinnedToCore(
-                        processSensorUpdates,           // Task function.
-                        "readSensorsData",              // name of task
-                        10000,                          // Stack size of task
-                        NULL,                           // parameter of the task
-                        1,                              // priority of the task 
-                        &ReadSensorTask,                // Task handle to keep track of created task
-                        1                               // pin task to core 1
-      );
+      initCoreTasks();
       break;
     //Initial boot or other default reason
     default :
-      debug("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
-      published = true;
+      debug("Wakeup was not caused by deep sleep: %d\n", wakeupReason);
+      published = false;
+      initCoreTasks();
       break;
   }
+}
+
+/**
+ * Init core tasks
+ */
+void initCoreTasks() {
+      //Rainfall interrupt pin set up
+    delay(100); //possible settling time on pin to charge
+    attachInterrupt(digitalPinToInterrupt(RAIN_PIN), rainTick, FALLING);
+    attachInterrupt(digitalPinToInterrupt(WIND_SPD_PIN), windTick, RISING);
+    processSensorUpdates();
+    // We create a thread for read data from sensors
+    /*
+    xTaskCreatePinnedToCore(
+                      processSensorUpdates,           // Task function.
+                      "readSensorsData",              // name of task
+                      10000,                          // Stack size of task
+                      NULL,                           // parameter of the task
+                      1,                              // priority of the task 
+                      &ReadSensorTask,                // Task handle to keep track of created task
+                      1                               // pin task to core 1
+    );
+    */
 }
 
 
@@ -283,10 +301,11 @@ void loop() {
  * Sleep
  */
 void sleep(long sleepMilis) {
+  digitalWrite(LED_BUILTIN, LOW);
   wifiOff();
   // ESP32 Deep SLeep Mode
   esp_deep_sleep_enable_timer_wakeup(sleepMilis);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
+  //esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 1);
   debug("Going to sleep now...");
   esp_deep_sleep_start();
 }
@@ -294,9 +313,10 @@ void sleep(long sleepMilis) {
 /**
  * Change Led Status
  */
-void switchLed(void *pvParameters) {
-  while (true) {
-    if (millis()%5000 == 0) {
+void switchLed(void *paramsValue) {
+  
+  while(true) {
+    if ((millis() % 5000) == 0) {
       int signal = led ? LOW : HIGH;
       digitalWrite(LED_BUILTIN, signal);
       led = !led;
@@ -307,30 +327,31 @@ void switchLed(void *pvParameters) {
 /**
  * Update clock and read sensors
  */
-void processSensorUpdates(void *pvParameters)
+void processSensorUpdates()
 {
   struct sensorData environment;
-  wifiOn();
-  //Calibrate Clock - My ESP RTC is noticibly fast
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  printLocalTime();
-  printTimeNextWake();
+  if (wifiOn()) {
+    //Calibrate Clock - My ESP RTC is noticibly fast
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+    printTimeNextWake();
+    //Get Sensor data
+    readSensorsData(&environment);
+    // Print data
+    printData(&environment);
+    //move rainTicks into hourly containers
+    debug("Current Hour: %i\n\n", timeinfo.tm_hour);
+    addTipsToHour(rainTicks);
+    clearRainfallHour(timeinfo.tm_hour + 1);
+    rainTicks = 0;
 
-  //Get Sensor data
-  readSensorsData(&environment);
+    //Start sensor housekeeping
+    addTipsToHour(rainTicks);
+    clearRainfallHour(timeinfo.tm_hour + 1);
+    rainTicks = 0;
 
-  //move rainTicks into hourly containers
-  debug("Current Hour: %i\n\n", timeinfo.tm_hour);
-  addTipsToHour(rainTicks);
-  clearRainfallHour(timeinfo.tm_hour + 1);
-  rainTicks = 0;
-
-  //Start sensor housekeeping
-  addTipsToHour(rainTicks);
-  clearRainfallHour(timeinfo.tm_hour + 1);
-  rainTicks = 0;
-
-  sendData(&environment);
+    sendData(&environment);
+  } 
   wifiOff();
 }
 
@@ -339,8 +360,9 @@ void processSensorUpdates(void *pvParameters)
  */
 void printData(struct sensorData *enviroment)
 {
-  debug("Altitude: %i", enviroment->altitude);
+  debug("Altitude: %i\n", enviroment->altitude);
   debug("Air temperature [°C]: %6.2f\n", enviroment->temperature);
+  debug("Temperature [°C]: %6.2f\n", enviroment->outTemperature);
   debug("Humidity [%]: %6.2f\n", enviroment->humidity);
   debug("Barometric pressure [hPa]: %6.2f\n", enviroment->pressure);
   debug("UV: %6.2f\n", enviroment->UVIndex);

@@ -36,7 +36,7 @@ void readWindSpeed(struct sensorData *environment )
   }
   else
   {
-    debug("No Wind data");
+    debug("No Wind data\n");
     windSpeed = 0;
   }
   // TODO Logic for metric or US
