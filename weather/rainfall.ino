@@ -38,7 +38,7 @@ void printHourlyArray (void)
   int hourCount = 0;
   for (hourCount = 0; hourCount < 24; hourCount++)
   {
-    debug("Hour %i: %u\n", hourCount, rainfall.hourlyRainfall[hourCount]);
+    debug("Hour %i: %u\n", (hourCount+1), rainfall.hourlyRainfall[hourCount]);
   }
 }
 

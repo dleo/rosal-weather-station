@@ -12,6 +12,7 @@ bool wifiOn() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
   while (WiFi.status() != WL_CONNECTED) {
+    if (millis()%5000 == 0) return false;
     Serial.print(".");
   }
   debug("WiFi connected. IP address: %s", WiFi.localIP());

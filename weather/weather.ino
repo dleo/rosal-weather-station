@@ -30,7 +30,7 @@
 /**
  * Pin definitions
  */
-#define WIND_SPD_PIN 14
+#define WIND_SPD_PIN 13
 #define RAIN_PIN     25
 #define WIND_DIR_PIN 35
 #define VOLT_PIN     33
@@ -219,7 +219,7 @@ void setup() {
   
   if (UpdateIntervalModified <= 0)
   {
-    UpdateIntervalModified = 5 * msFactor;    // Seconds 
+    UpdateIntervalModified = 60 * SEC;    // Seconds 
   }
   //pet the dog
   esp_task_wdt_reset();                       // Pet the dog!
@@ -249,6 +249,7 @@ void wakeupReason() {
       debug("Wakeup caused by external signal using RTC_IO\n");
       published = true;
       rainTicks++;
+      printHourlyArray();
       break;
 
     //Timer
@@ -287,6 +288,15 @@ void initCoreTasks() {
                       1                               // pin task to core 1
     );
     */
+    xTaskCreatePinnedToCore(
+                      debugSensor,                    // Task function.
+                      "readSensorsData",              // name of task
+                      10000,                          // Stack size of task
+                      NULL,                           // parameter of the task
+                      1,                              // priority of the task 
+                      &ReadSensorTask,                // Task handle to keep track of created task
+                      1                               // pin task to core 1
+    );
 }
 
 
@@ -305,7 +315,7 @@ void sleep(long sleepMilis) {
   wifiOff();
   // ESP32 Deep SLeep Mode
   esp_deep_sleep_enable_timer_wakeup(sleepMilis);
-  //esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 1);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, 0);
   debug("Going to sleep now...");
   esp_deep_sleep_start();
 }
@@ -344,15 +354,18 @@ void processSensorUpdates()
     addTipsToHour(rainTicks);
     clearRainfallHour(timeinfo.tm_hour + 1);
     rainTicks = 0;
-
-    //Start sensor housekeeping
-    addTipsToHour(rainTicks);
-    clearRainfallHour(timeinfo.tm_hour + 1);
-    rainTicks = 0;
-
+    // Send data to mqtt
     sendData(&environment);
   } 
   wifiOff();
+}
+
+void debugSensor(void *paramsValue) {
+  while(true) {
+    if ((millis() % 5000) == 0) {
+      processSensorUpdates();
+    }
+  }
 }
 
 /**
@@ -373,7 +386,7 @@ void printData(struct sensorData *enviroment)
   debug("Wind Gust: %s\n", enviroment->windCardinalDirection);                
   debug("Wind Gust Dir: %6.2f km/h\n", enviroment->windSpeed);
   */
-  debug("Rainfall last hour: %6.2f \n", rainfall.hourlyRainfall[timeinfo.tm_hour]);
+  debug("Rainfall last hour: %6.2f \n", rainfall.hourlyRainfall[timeinfo.tm_hour-1]);
   last24();                                                                                     //Rain Last 24 hours
   debug("Battery Level: %6.2f km/h\n", enviroment->batteryVoltage);
   debug("Temperature in C: %6.2f \n", enviroment->outTemperature);
@@ -382,4 +395,5 @@ void printData(struct sensorData *enviroment)
   debug("Heat Index: %6.2f C\n", enviroment->heatIndex);
   debug("ETo: %6.2f \n", enviroment->eto);
   debug("Moon Phase: %6.2f \n", enviroment->moonPhaseString);
+  debug("Batery: %6.2f \n", enviroment->batteryVoltage);
 }

@@ -93,11 +93,30 @@ char * moonPhaseToString(int phase)
  * Calculate eto
  */
 float calculateEto(struct sensorData *environment) {
+  /*
   float svp = svp_from_t(environment->humidity);
   float avp = avp_from_tdew(environment->dewPoint);
   float dsvp = delta_svp(environment->temperature);
   float psy = psy_const(environment->pressure);
   return fao56_penman_monteith(environment->irradiation, environment->temperature, environment->windSpeed * 2.4, svp, environment->humidity, avp, dsvp, psy);
+  */
+  int dayOfYear = 1; // TODO Calculated
+  float ird = inv_rel_dist_earth_sun(dayOfYear);
+  float solDec = sol_dec(dayOfYear);
+  float sha = sunset_hour_angle(LAT, solDec);
+  int daylightHours = daylight_hours(sha);
+  float etRad = et_rad(LAT, solDec, sha, ird);
+  float solRad = sol_rad_from_sun_hours(daylightHours, SUNSHINEHOURS, etRad);
+  float niSwRad = net_in_sol_rad(solRad);
+  float csRad = cs_rad(LAT, etRad);
+  float avp = avp_from_tdew(environment->dewPoint);
+  // TODO Calculations for tmin a tmax
+  float noLwRad = net_out_lw_rad(18 + CTOK, 28 + CTOK, solRad, csRad, avp);
+  float netRad = net_rad(niSwRad, noLwRad);
+  float svp = svp_from_t(environment->humidity);
+  float dsvp = delta_svp(environment->temperature);
+  float psy = psy_const(environment->pressure);
+  return fao56_penman_monteith(netRad, environment->temperature + CTOK, environment->windSpeed * 2.4, svp, avp, dsvp, psy);
 }
 
 /**

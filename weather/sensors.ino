@@ -43,9 +43,10 @@ void readEto(struct sensorData *environment) {
  */
 void readBattery (struct sensorData *environment) {
     // Reading Battery Level in %
-    float val = analogRead(VOLT_PIN);                    //reads the analog input
-    float Vout = (val * 3.3 ) / 4095.0;                  // formula for calculating voltage out
-    environment->batteryVoltage = Vout * ( R2 + R1) / R2 ;  // formula for calculating voltage in
+    float val = analogRead(VOLT_PIN);                         //reads the analog input
+    debug("Voltaje Batery: %6.2f \n", val);
+    float Vout = val * batteryCalFactor;                      // formula for calculating voltage out
+    environment->batteryVoltage = ((Vout / 4.2) * 100)*0.95;  // formula for calculating voltage including error
 }
 
 /**
@@ -137,4 +138,3 @@ void readRxSignal(struct sensorData *environment) {
     environment->rxSignal = WiFi.RSSI();
   }
 }
-

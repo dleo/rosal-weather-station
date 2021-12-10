@@ -20,7 +20,7 @@ void readWindSpeed(struct sensorData *environment )
   //Again, I see 2 ticks on anemometer
   if (count)
   {
-    for (position = 1; position < 7; position++)
+    for (position = 1; position < 10; position++)
     {
       if (tickTime[position])
       {
@@ -32,7 +32,7 @@ void readWindSpeed(struct sensorData *environment )
   //Average samples
   if (msTotal > 0 && samples > 0)
   {
-    windSpeed = 1.49 * 1000 / (msTotal / samples);      // Get speed on mph
+    windSpeed = 1.49 * 1000 / (msTotal / samples);      // Get speed on mph. There is 1.492MPH for each click per second.
   }
   else
   {

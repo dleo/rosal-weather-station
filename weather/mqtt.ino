@@ -78,7 +78,7 @@ void sendData(struct sensorData *enviroment) {
         connectToMqtt();
         getLocalTime(&timeinfo);
         debug("Attempting to publish MQTT...");
-        const int capacity = JSON_OBJECT_SIZE(19);
+        const int capacity = JSON_OBJECT_SIZE(20);
         StaticJsonDocument<capacity> doc;
         doc["date-time"] = now();
         doc["altitude"] = enviroment->altitude;
@@ -88,9 +88,9 @@ void sendData(struct sensorData *enviroment) {
         doc["light"] = enviroment->lux;
         doc["wind-speed"] = enviroment->windSpeed;
         doc["wind-dir"] = enviroment->windDirection;
-        doc["rain-hour"] = rainfall.hourlyRainfall[timeinfo.tm_hour] * 0.011;
+        doc["rain-hour"] = rainfall.hourlyRainfall[timeinfo.tm_hour-1] * 0.011;
         doc["rain-day"] = last24() * 0.011;
-        doc["rain"] = rainfall.hourlyRainfall[timeinfo.tm_hour] * 0.011;
+        doc["rain"] = rainfall.hourlyRainfall[timeinfo.tm_hour-1] * 0.011;
         doc["out-temperature"] = enviroment->outTemperature;
         doc["solar-radiation"] = enviroment->irradiation;
         doc["dew-point"] = enviroment->dewPoint;
@@ -99,6 +99,7 @@ void sendData(struct sensorData *enviroment) {
         doc["in-temperature"] = enviroment->temperature;
         doc["eto"] = enviroment->eto;
         doc["rx-signal"] = enviroment->rxSignal;
+        doc["moon-phase"] = enviroment->moonPhaseString;
         char jsonBuffer[512];
         
         serializeJson(doc, jsonBuffer); // print to client;
@@ -154,6 +155,9 @@ void sendData(struct sensorData *enviroment) {
         serializeJson(doc["rx-signal"], jsonBuffer); // print to client;
         if (!mqtt.publish("weather/rx-signal", jsonBuffer))
           pubSubErr(mqtt.state());
+        serializeJson(doc["moon-phase"], jsonBuffer); // print to client;
+        if (!mqtt.publish("weather/moon-phase", jsonBuffer))
+          pubSubErr(mqtt.state());
         debug("Finished publishMQTT...");
         published = true;
         sleep(updateWake());
@@ -164,7 +168,7 @@ void sendData(struct sensorData *enviroment) {
     } else {
       // We will check if has been more than 30 seconds up
       long currentMillis = millis();
-      if ((currentMillis - initialMillis) >= (30 * SEC)) {
+      if ((currentMillis - initialMillis) >= (30 * msFactor)) {
         sleep(updateWake());
       }
     }
