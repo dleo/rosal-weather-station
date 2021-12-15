@@ -1,7 +1,11 @@
 #include "weather.h"
-
-OneWire oneWire(TEMP_PIN);
-DallasTemperature temperatureSensor(&oneWire);
+#include "faov.h"
+#include "Arduino.h"
+#include "WiFi.h"
+#include "TimeLib.h"
+#include "secrets.h"
+#include "BME280I2C.h"
+#include "EnvironmentCalculations.h"
 
 /**
  * Read sensors
@@ -97,37 +101,7 @@ void readTemperature(struct sensorData *environment) {
  * Calculate solar irradiation from ACS712
  */
 void readIrradiation(struct sensorData *environment) {
-    
-  /* 1- DC Current & Irradiation */
-  
-  if(millis() >= currentLastSample + 1 )                                                                          /* every 100 milli second taking 1 reading */
-  {
-    currentSampleRead = analogRead(PV_PIN)-((moduleMiddleVoltage/moduleSupplyVoltage)*1024);                      /* read the sample value */ 
-    currentSampleSum += currentSampleRead ;                                                                       /* accumulate value with older sample readings*/  
-    currentSampleCount++;                                                                                         /* to move on to the next following count */
-    currentLastSample = millis();                                                                                 /* to reset the time again so that next cycle can start again*/ 
-  }
-
-  if(currentSampleCount == 10)                                                                                     /* after 10 count or 1000 milli seconds (1 second), do the calculation and display value*/
-  {
-    currentMean = currentSampleSum/currentSampleCount;                                                            /* calculate average value of all sample readings taken*/
-    finalCurrent = (((currentMean /1024)*moduleSupplyVoltage)/mVperAmpValue);                                     /* calculate the final current (without offset)*/
-    finalCurrent2 = finalCurrent + currentOffset;                                                                 /* The final current */
-    environment->irradiation = (finalCurrent2/(ShortCircuitCurrentSTC*10));                                        /* Save the current irradiation */
-    currentSampleSum = 0;                                                                                         /* to reset accumulate sample values for the next cycle */
-    currentSampleCount= 0;                                                                                        /* to reset number of sample for the next cycle */
-  }    
-
-  /* 1.2 - Average Accumulate Irradiation */
-
-  currentMillisIrradiation = millis();                                                                 /* Count the time for current */
-
-  if (currentMillisIrradiation - startMillisIrradiation >= periodIrradiation)
-  {
-    accumulateIrradiation = environment->irradiation/3600*(periodIrradiation/1000);                                /* for smoothing calculation*/
-    FinalAccumulateIrradiationValue =  FinalAccumulateIrradiationValue + accumulateIrradiation ;
-    startMillisIrradiation = currentMillisIrradiation ;                                               /* Set the starting point again for next counting time */
-  }
+  return;
 }
 
 /**

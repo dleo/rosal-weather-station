@@ -1,7 +1,8 @@
 #include "weather.h"
-
-
-
+#include "secrets.h"
+#include "WiFi.h"
+#include "ArduinoJson.h"
+#include "TimeLib.h"
 /**
  * Connect to MQTT Broker
  */

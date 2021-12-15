@@ -1,3 +1,6 @@
+#include "faov.h"
+#include "math.h"
+#include "Arduino.h"
 /**
 Library of functions for estimating reference evapotransporation (ETo) for
 a grass reference crop using the FAO-56 Penman-Monteith and Hargreaves
@@ -7,18 +10,6 @@ meteorological data.
 (c) 2015 by Mark Richards.
 @author David Lopez <dlopez@hsd.cl>
 */
-// Solar constant [ MJ m-2 min-1]
-#define SOLAR_CONSTANT 0.0820
-
-// Stefan Boltzmann constant [MJ K-4 m-2 day-1]
-#define STEFAN_BOLTZMANN_CONSTANT 0.000000004903
-
-#define PI 3.1415926535897932384626433832795
-
-
-
-
-
 
 /**
     Convert angular degrees to radians
@@ -31,21 +22,11 @@ float deg2rad(float degrees) {
 }
     
 
-const float _MINLAT_RADIANS = deg2rad(-90.0);
-const float _MAXLAT_RADIANS = deg2rad(90.0);
-// Solar declination
-const float _MINSOLDEC_RADIANS = deg2rad(-23.5);
-const float _MAXSOLDEC_RADIANS = deg2rad(23.5);
-
-// Sunset hour angle
-const float _MINSHA_RADIANS = 0.0;
-const float _MAXSHA_RADIANS = deg2rad(180);
-
 /**
     Check that *hours* is in the range 1 to 24.
 */
-bool check_day_hours(int hours, char arg_name) {
-    if  (!0 <= hours <= 24){
+bool check_day_hours(int hours, char* arg_name) {
+    if (!((0 <= hours) && (hours <= 24))) {
         return false;
     }
     return true;
@@ -55,7 +36,7 @@ bool check_day_hours(int hours, char arg_name) {
     Check day of the year is valid.
 */
 bool check_doy(int doy) {
-    if (!1 <= doy <= 366) {
+    if (!((1 <= doy) && (doy <= 366))) {
         return false;
     }
 
@@ -387,7 +368,7 @@ float et_rad(float latitude, float sol_dec, float sha, float ird) {
         grass reference surface [mm day-1].
     :rtype: float
 */
-float fao56_penman_monteith(float net_rad, float t, float ws, float svp, float avp, float delta_svp, float psy, float shf=0.0) {
+float fao56_penman_monteith(float net_rad, float t, float ws, float svp, float avp, float delta_svp, float psy, double shf) {
     float a1 = (0.408 * (net_rad - shf) * delta_svp /
           (delta_svp + (psy * (1 + 0.34 * ws))));
     float a2 = (900 * ws / t * (svp - avp) * psy /
@@ -520,7 +501,7 @@ float monthly_soil_heat_flux2(float t_month_prev, float t_month_cur) {
     :rtype: float
 
 */
-float net_in_sol_rad(float sol_rad, float albedo=0.23) {
+float net_in_sol_rad(float sol_rad, double albedo) {
     return (1 - albedo) * sol_rad;
 }
 
@@ -694,8 +675,8 @@ float sol_dec(float day_of_year) {
     :rtype: float
 */
 float sol_rad_from_sun_hours(int daylight_hours, int sunshine_hours, float et_rad) {
-    check_day_hours(sunshine_hours, 'sun_hours');
-    check_day_hours(daylight_hours, 'daylight_hours');
+    check_day_hours(sunshine_hours, "sun_hours");
+    check_day_hours(daylight_hours, "daylight_hours");
 
     //0.5 and 0.25 are default values of regression constants (Angstrom values)
     //recommended by FAO when calibrated values are unavailable.

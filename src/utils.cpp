@@ -1,4 +1,7 @@
 #include "weather.h"
+#include "faov.h"
+#include "TimeLib.h"
+#include "secrets.h"
 /**
  * Internal function calculate proper angle
  */

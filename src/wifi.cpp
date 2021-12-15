@@ -1,13 +1,13 @@
 #include "weather.h"
+#include "secrets.h"
+#include "WiFi.h"
 
 /**
  * Wifi Network
  */
 bool wifiOn() {
   // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  debug("Connecting to %s", ssid);
   delay(1);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);

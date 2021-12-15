@@ -3,6 +3,9 @@
    Original idea https://www.instructables.com/Solar-Powered-WiFi-Weather-Station-V30/
    Author dleo.lopez@gmail.com
 */
+#include <Arduino.h>
+
+
 #define VERSION 0.4
 /**
    Libraries
@@ -10,43 +13,17 @@
 #include "weather.h"
 #include "secrets.h"
 #include "faov.h"
-#include <BME280I2C.h>
-#include "Adafruit_SI1145.h"
-#include <BH1750.h>
-#include <DallasTemperature.h>
-#include <OneWire.h>
+#include "OneWire.h"
 #include "Wire.h"
-#include <WiFi.h>
+#include "WiFi.h"
 #include "esp_deep_sleep.h"
-#include <PubSubClient.h>
-#include <WiFiClientSecure.h>
-#include <ArduinoJson.h>
+#include "PubSubClient.h"
+#include "ArduinoJson.h"
 #include <EnvironmentCalculations.h>
 #include <WiFiUdp.h>
 #include <esp_task_wdt.h>
 #include <TimeLib.h>
 
-
-/**
- * Pin definitions
- */
-#define WIND_SPD_PIN 13
-#define RAIN_PIN     25
-#define WIND_DIR_PIN 35
-#define VOLT_PIN     33
-#define PV_PIN       32 // ACS712
-#define TEMP_PIN     4  // DS18B20 hooked up to GPIO pin 4
-#define LED_BUILTIN  2
-#define WDT_TIMEOUT 60
-#define SEC 1E6          //Multiplier for uS based math
-
-// Variables and constants used in tracking rainfall
-#define S_IN_DAY   86400
-#define S_IN_HR     3600
-#define NO_RAIN_SAMPLES 2000
-#define SEALEVELPRESSURE_HPA (1013.25)
-#define LATITUDE (7.810944)                           //Latitude for Granja Rosal
-#define SEA_LEVEL 1500
 
 
 /**
@@ -54,9 +31,6 @@
  */
 WiFiUDP ntpUDP;
 WiFiClient client;
-BME280I2C bme;
-Adafruit_SI1145 uv = Adafruit_SI1145();
-BH1750 lightMeter;
 WiFiClientSecure net;
 PubSubClient mqtt(net);
 TaskHandle_t TransmitTask;
@@ -64,60 +38,8 @@ TaskHandle_t ReadSensorTask;
 TaskHandle_t BlinkTask;
 
 /**
- * Externs
- */
-extern DallasTemperature temperatureSensor;
-extern struct tm timeinfo;
-extern const long  gmtOffset_sec;
-extern const int   daylightOffset_sec;
-extern const char* ntpServer;
-
-
-
-/**
  * Variables and constants
  */
-struct sensorData
-{
-  float eto;
-  float temperature;
-  float pressure;
-  float altitude;
-  float windSpeed;
-  float windGust;
-  int windGustDir;
-  float dewPoint = 0;
-  float heatIndex = 0;
-  float outTemperature = 0;
-  float windDirection;
-  char windCardinalDirection[5];
-  float humidity;
-  float UVIndex;
-  float lux;
-  int photoresistor;
-  float batteryVoltage;
-  int baterry;
-  float irradiation;
-  int moonPhase;
-  char * moonPhaseString;
-  int timestamp;
-  float rain;
-  float rxSignal;
-};
-
-//rainfall is stored here for historical data uses RTC
-struct historicalData
-{
-  unsigned int hourlyRainfall[24];
-  unsigned int current60MinRainfall[12];
-};
-
-// Variables used with RTC Memory storage
-RTC_DATA_ATTR volatile int rainTicks = 0;
-RTC_DATA_ATTR int lastHour = 0;
-RTC_DATA_ATTR time_t nextUpdate;
-RTC_DATA_ATTR struct historicalData rainfall;
-RTC_DATA_ATTR int bootCount = 0;
 
 // Variables used in calculating the battery voltage
 float batteryVolt;
@@ -125,52 +47,34 @@ float Vout = 0.00;
 float Vin = 0.00;
 float R1 = 27000.00; // resistance of R1 (27K) // You can also use 33K
 float R2 = 100;
-// Variables for solar radiation
-float solarRadiation;
-float R3 = 100;
-
-//Variables for Solar Radiation
-float mVperAmpValue = 185;                  // If using ACS712 current module : for 5A module key in 185, for 20A module key in 100, for 30A module key in 66
-float moduleMiddleVoltage = 1650;           // key in middle voltage value in mV. For 5V power supply key in 2500, for 3.3V power supply, key in 1650 mV
-float moduleSupplyVoltage = 3300;           // supply voltage to current sensor module in mV, default 5000mV, may use 3300mV
-float currentSampleRead  = 0;               // to read the value of a sample
-float currentLastSample  = 0;               // to count time for each sample. Technically 1 milli second 1 sample is taken
-float currentSampleSum   = 0;               // accumulation of sample readings
-float currentSampleCount = 0;               // to count number of sample
-float currentMean ;                         // to calculate the average value from all samples
-float finalCurrent ;                        // the final current reading without taking offset value
-float finalCurrent2 ;                       // the final current reading
-float ShortCircuitCurrentSTC = 0.057;       // Key in the Short Circuit Current (At STC condition) of your Solar Panel or Solar Cell. Value 9 showing 9.0A Isc Panel.
-/* 1.1 - Offset DC Current */
-int   OffsetRead = 0;                   // To switch between functions for auto callibation purpose
-float currentOffset =0.00;              // to Offset deviation and accuracy. Offset any fake current when no current operates. 
-                                        // the offset will automatically done when you press the <SELECT> button on the LCD display module.
-                                        // you may manually set offset here if you do not have LCD shield
-float offsetLastSample = 0;             // to count time for each sample. Technically 1 milli second 1 sample is taken
-float offsetSampleCount = 0;            // to count number of sample.
-
-/*
-  1.2 - Average Accumulate Irradiation
-  We need change this for deep sleep  
-*/
-               
-float accumulateIrradiation = 0;                          // Amount of accumulate irradiation
-unsigned long startMillisIrradiation;                     // start counting time for irradiation energy
-unsigned long currentMillisIrradiation;                   // current counting time for irradiation energy
-const unsigned long periodIrradiation = 1000;             // refresh every X seconds (in seconds) Default 1000 = 1 second 
-float FinalAccumulateIrradiationValue = 0;                // shows the final accumulate irradiation reading
 
 
 bool led = true;                                         // Init state of led
-bool published = false;                                  // Knows if published successfull
+struct tm timeinfo;
+RTC_DATA_ATTR struct historicalData rainfall;
+RTC_DATA_ATTR volatile int rainTicks = 0;
+RTC_DATA_ATTR int lastHour = 0;
+RTC_DATA_ATTR int bootCount = 0;
+bool published = false;
+long initialMillis = 0;
 bool lowBattery = false;
-long initialMillis = 0;                                  // Initial millis on init
+const long  gmtOffset_sec = -4 * 3600;
+const int   daylightOffset_sec = 3600;
+const char* ntpServer = "pool.ntp.org";
 
+OneWire oneWire(TEMP_PIN);
+DallasTemperature temperatureSensor(&oneWire);
+Adafruit_SI1145 uv = Adafruit_SI1145();
+BH1750 lightMeter;
+BME280I2C bme;
 
 /**
    Setup function
 */
 void setup() {
+  lowBattery = false;                                 // Knows if baterry is low
+  published = false;                                  // Knows if published successfull
+  initialMillis = 0;                                  // Initial millis on init
   long UpdateIntervalModified = 0;
   // Setup watchdog
   esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
@@ -360,6 +264,9 @@ void processSensorUpdates()
   wifiOff();
 }
 
+/**
+ * Debug sensor info
+ */
 void debugSensor(void *paramsValue) {
   while(true) {
     if ((millis() % 5000) == 0) {
