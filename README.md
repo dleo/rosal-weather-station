@@ -31,6 +31,9 @@ Before uploading the code install the following libraries :
 You can read [this tutorial](https://learn.sparkfun.com/tutorials/installing-an-arduino-library/all) by Sparkfun to install the Arduino libraries.
 
 ## Contributing
+
+Please follow the [PlatformIO](https://docs.platformio.org/en/latest/core/quickstart.html) guidelines for the project structure and compilation.
+
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 Please make sure to update tests as appropriate.

@@ -12,12 +12,28 @@
   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
-#include <pgmspace.h>
+#ifndef DEFINES_SECRETS_H
+#define DEFINES_SECRETS_H
 
 #define SECRET
 #define THINGNAME "weather-rosal"
-const char AWS_IOT_ENDPOINT[] = "a4jlggz7dvu45-ats.iot.us-west-1.amazonaws.com";
+#define SerialMonitor
+//measured battery voltage/ADC reading
+#define batteryCalFactor .001272
+#define LAT 7.809791
+#define SUNSHINEHOURS 11
+#define CTOK 273.15
+
+const char AWS_IOT_ENDPOINT[] = "";
+/**
+  Deep Sleep Time
+*/
+const int UpdateIntervalSeconds = 5 * 60;  //Sleep timer (60s) testing
+const int msFactor = 1000;
+
+// WiFi
+const char ssid[] = "GRANJA_ROSAL";
+const char pass[] = "Rosal.16232425";
 
 // Amazon Root CA 1
 static const char AWS_CERT_CA[] PROGMEM = R"EOF(
@@ -36,3 +52,4 @@ static const char AWS_CERT_PRIVATE[] PROGMEM = R"KEY(
 -----BEGIN RSA PRIVATE KEY-----
 -----END RSA PRIVATE KEY-----
 )KEY";
+#endif
