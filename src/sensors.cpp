@@ -22,6 +22,7 @@ void readSensorsData(struct sensorData *environment) {
     readEto(environment);
     readMoonPhase(environment);
     readRxSignal(environment);
+    readRain(environment);
 }
 
 /**
@@ -39,7 +40,7 @@ void readMoonPhase(struct sensorData *environment) {
  * Read eto
  */
 void readEto(struct sensorData *environment) {
-    environment->eto = calculateEto(environment);
+    calculateEto(environment, true);
 }
 
 /**
@@ -98,10 +99,15 @@ void readTemperature(struct sensorData *environment) {
 }
 
 /**
- * Calculate solar irradiation from ACS712
+ * @brief Read from solar radiation sensor
  */
 void readIrradiation(struct sensorData *environment) {
-  return;
+  int radSolar = analogRead(SOLAR_RADIATION);
+  int ref = analogRead(REF_3V3);
+  debug("Solar radiation read %d \n", radSolar);
+  debug("Ref radiation read %d \n", ref);
+  float mV = (3300 * radSolar) / ref;
+  environment->irradiation = (int) mV / 1.67;
 }
 
 /**
@@ -111,4 +117,15 @@ void readRxSignal(struct sensorData *environment) {
   if (WiFi.status() == WL_CONNECTED) {
     environment->rxSignal = WiFi.RSSI();
   }
+}
+
+/**
+ * @brief Read the rain
+ * 
+ * @param environment 
+ */
+void readRain(struct sensorData *environment) {
+  environment->rain = currentRain;
+  environment->rainLastHour = getRainByHour(currentHour) * RAIN_TICK;
+  environment->rainLastDay = last24() * RAIN_TICK;
 }

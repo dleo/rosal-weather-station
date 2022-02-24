@@ -95,14 +95,32 @@ char * moonPhaseToString(int phase)
 /**
  * Calculate eto
  */
-float calculateEto(struct sensorData *environment) {
-  /*
-  float svp = svp_from_t(environment->humidity);
-  float avp = avp_from_tdew(environment->dewPoint);
-  float dsvp = delta_svp(environment->temperature);
-  float psy = psy_const(environment->pressure);
-  return fao56_penman_monteith(environment->irradiation, environment->temperature, environment->windSpeed * 2.4, svp, environment->humidity, avp, dsvp, psy);
-  */
+void calculateEto(struct sensorData *environment, boolean hourly) {
+  float pressure_kpa = environment->pressure / 10;
+  float dsvp = delta_svp(environment->temperature);     //kPa
+  float psy = psy_const(pressure_kpa);                  //kPa
+  float svp = svp_from_t(environment->temperature);     //kPa
+  float avp = avp_from_rhmax(svp, environment->humidity);
+  float temp_k = environment->temperature + 273.15;             // Convertion C -> K
+  float irradiation = environment->irradiation * 0.0864;            // Convertion to MJ m-2 día-1
+  float sol_declination = sol_dec(dayOfYear);
+  float sha = sunset_hour_angle(LATITUDE, sol_declination);
+  float ird = inv_rel_dist_earth_sun(dayOfYear);
+  float et_radiation = et_rad(LATITUDE, sol_declination, sha, ird);
+  float cs_radiation = cs_rad(environment->altitude, et_radiation);
+  float net_radiation = net_rad(
+    net_in_sol_rad(irradiation), 
+    net_out_lw_rad(environment->temperature, environment->temperature, irradiation, cs_radiation, avp)
+  );
+  float wind_speed_ms = (int) environment->windSpeed / 3.6;     // Convertion km/h -> m/s
+  float eto_daily = fao56_penman_monteith(net_radiation, temp_k, wind_speed_ms, svp, avp, dsvp, psy);
+  environment->etoDaily = eto_daily;
+  if (hourly) {
+    environment->eto = fao56_eto_hr(net_radiation, environment->temperature, psy, wind_speed_ms, dsvp, avp, svp);
+  }
+ /*
+
+  Without solar radiation sensor
   int dayOfYear = 1; // TODO Calculated
   float ird = inv_rel_dist_earth_sun(dayOfYear);
   float solDec = sol_dec(dayOfYear);
@@ -120,6 +138,7 @@ float calculateEto(struct sensorData *environment) {
   float dsvp = delta_svp(environment->temperature);
   float psy = psy_const(environment->pressure);
   return fao56_penman_monteith(netRad, environment->temperature + CTOK, environment->windSpeed * 2.4, svp, avp, dsvp, psy);
+  */
 }
 
 /**
