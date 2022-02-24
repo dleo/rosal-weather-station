@@ -376,6 +376,30 @@ float fao56_penman_monteith(float net_rad, float t, float ws, float svp, float a
     return a1 + a2;
 }
 
+
+/**
+ * @brief Estimate reference evapotranspiration (ETo) hourly
+ * 
+ * @param net_rad Net radiation at crop surface [MJ m-2 day-1]
+ * @param t Air temperature hourly at 2 m height hourly
+ * @param psy Psychrometric constant [kPa deg C]. Can be estimatred usinn ``psy_const_of_psychrometer()`` or ``psy_const()``.
+ * @param svp: Saturation vapour pressure [kPa]. Can be estimated using ``svp_from_t()''.
+ * @param avp: Actual vapour pressure [kPa]. Can be estimated using a range of functions with names beginning with 'avp_from'.
+ * @param ws: Wind speed at 2 m height [m s-1]. If not measured at
+ * @param delta_svp: Slope of saturation vapour pressure curve [kPa degC-1]. Can be estimated using ``delta_svp()``.
+ * @param shf: Soil heat flux (G) [MJ m-2 day-1](default is 0.0, which is reasonable for a daily or 10-day time steps). 
+ *             For monthly time steps        *shf* can be estimated using ``monthly_soil_heat_flux()`` or
+ *            ``monthly_soil_heat_flux2()``.
+ * @return float Reference evapotranspiration (ETo) from a hypothetical grass reference surface [mm hourly].
+ */
+float fao56_eto_hr(float net_rad, float t, float psy, float ws, float delta_svp, float avp, float svp, double shf) {
+    float denominator = delta_svp + (psy * (1 + 0.34 * ws));
+    float a1 = (0.408 * (net_rad - shf) * delta_svp);
+    float a2 = psy * (37/(t + 273)) * ws * (svp * t - avp);
+
+    return (a1 + a2) / denominator;
+}
+
 /**
     Estimate reference evapotranspiration over grass (ETo) using the Hargreaves
     equation.

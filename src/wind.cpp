@@ -1,4 +1,4 @@
-#include "weather.h";
+#include "weather.h"
 
 volatile unsigned long timeSinceLastTick = 0;
 volatile unsigned long lastTick = 0;

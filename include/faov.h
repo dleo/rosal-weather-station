@@ -59,4 +59,5 @@ float sol_rad_from_t(float et_rad, float cs_rad, float tmin, float tmax, bool co
 float sol_rad_island(float et_rad);
 float sunset_hour_angle(float latitude, float sol_dec);
 float wind_speed_2m(float ws, float z);
+float fao56_eto_hr(float net_rad, float t, float psy, float ws, float delta_svp, float avp, float svp, double shf = 0.0);
 #endif

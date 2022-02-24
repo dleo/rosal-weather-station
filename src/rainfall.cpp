@@ -2,8 +2,9 @@
 
 // Variables used in software delay to supress spurious counts on rain_tip
 volatile unsigned long timeSinceLastTip = 0;
-volatile unsigned long validTimeSinceLastTip = 0;
 volatile unsigned long lastTip = 0;
+volatile unsigned long tickRainTime[20] = {0};
+volatile int countRain = 0;
 
 /**
  * Zero out rainfall counter structure
@@ -28,6 +29,17 @@ void addTipsToHour(int count)
 {
   int hourPtr = timeinfo.tm_hour;
   rainfall.hourlyRainfall[hourPtr] = rainfall.hourlyRainfall[hourPtr] + count;
+}
+
+/**
+ * @brief Get the rain by specify hour
+ * 
+ * @param hour 
+ * @return float 
+ */
+float getRainByHour(int hour)
+{
+  return rainfall.hourlyRainfall[hour % 24] * RAIN_TICK;
 }
 
 /**
@@ -57,7 +69,6 @@ int last24(void)
   return totalRainfall;
 }
 
-//ISR
 /**
  * ISR for rain tip gauge count
  */
@@ -67,8 +78,15 @@ void IRAM_ATTR rainTick(void)
   //software debounce attempt
   if (timeSinceLastTip > 400)
   {
-    validTimeSinceLastTip = timeSinceLastTip;
+    debug("Rain dump\n");
     rainTicks++;
     lastTip = millis();
+    //Here we can calculate rain rate
+    //Even must be some calculations for know if a storm is present
+    tickRainTime[countRain] = timeSinceLastTip;
+    countRain++;
+    if (countRain >= 10) {
+      countRain = 0;
+    }
   }
 }
