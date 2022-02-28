@@ -88,6 +88,8 @@ extern BME280I2C bme;
 extern BH1750 lightMeter;
 extern WiFiClientSecure net;
 extern int dayOfYear;
+extern bool isNewDay;
+extern bool isNewHour;
 
 
 /**
@@ -130,7 +132,7 @@ void clearRainfall(void);
 void clearRainfallHour(int hourPtr);
 void addTipsToHour(int count);
 void printHourlyArray (void);
-float getRainByHour(int hour);
+int getRainByHour(int hour);
 int last24(void);
 void readSensorsData(struct sensorData *environment);
 void readMoonPhase(struct sensorData *environment);

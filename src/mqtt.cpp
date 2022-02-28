@@ -98,7 +98,7 @@ boolean sendData(struct sensorData *enviroment)
       connectToMqtt();
       getLocalTime(&timeinfo);
       debug("Attempting to publish MQTT...");
-      const int capacity = JSON_OBJECT_SIZE(20);
+      const int capacity = JSON_OBJECT_SIZE(21);
       StaticJsonDocument<capacity> doc;
       doc["date-time"] = now();
       doc["altitude"] = enviroment->altitude;
@@ -108,7 +108,7 @@ boolean sendData(struct sensorData *enviroment)
       doc["light"] = enviroment->lux;
       doc["wind-speed"] = enviroment->windSpeed;
       doc["wind-dir"] = enviroment->windDirection;
-      doc["rain-hour"] = rainfall.hourlyRainfall[timeinfo.tm_hour - 1] * 0.011;
+      doc["rain-hour"] = currentRain * RAIN_TICK;
       doc["rain-day"] = enviroment->rainLastDay;
       doc["rain"] = enviroment->rain;
       doc["out-temperature"] = enviroment->outTemperature;

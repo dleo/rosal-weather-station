@@ -62,6 +62,8 @@ const long  gmtOffset_sec = -4 * 3600;
 const int   daylightOffset_sec = 3600;
 const char* ntpServer = "pool.ntp.org";
 int dayOfYear = 1;
+bool isNewDay = false;
+bool isNewHour = false;
 
 OneWire oneWire(TEMP_PIN);
 DallasTemperature temperatureSensor(&oneWire);
@@ -93,6 +95,7 @@ void setup() {
   debug("Weather station powered on.\n");
   published = false;
   initialMillis = millis();
+  debug("Boot #%d.\n", bootCount);
   bootCount++;
 
   // Begin setup sensors
@@ -250,22 +253,33 @@ void processSensorUpdates(struct sensorData *environment, boolean proccessRain =
     dayOfYear = calculateDayOfYear(day(), month(), year());
     printLocalTime();
     printTimeNextWake();
+    // Check if is the first boot, we init curretn hour and day
+    if (bootCount <= 1) {
+      currentHour = timeinfo.tm_hour;
+      currentDay = timeinfo.tm_mday;
+    }
+    // Check if we're on new hour
+    if (currentHour != timeinfo.tm_hour) {
+      isNewHour = true; 
+      currentHour = timeinfo.tm_hour;
+    }
+    // Check if we are on new day, we must update
+    if (currentDay != timeinfo.tm_mday) {
+      isNewDay = true;
+      currentDay = timeinfo.tm_mday;
+    }
     // Rain process must be with time available
     if (proccessRain) {
       //move rainTicks into hourly containers
       debug("Moving rain ticks...Current Hour: %i\n\n", timeinfo.tm_hour);
+      if (isNewHour) {
+        currentRain = rainTicks;
+      }
       addTipsToHour(rainTicks);
       rainTicks = 0;
-      // Check if we're on new hour
-      if (currentHour != timeinfo.tm_hour) {
-        clearRainfallHour(timeinfo.tm_hour);
-        currentRain = getRainByHour(currentHour);
-        currentHour = timeinfo.tm_hour;
-      }
       // Check if we are on new day, we must update
-      if (currentDay != timeinfo.tm_mday) {
+      if (isNewDay) {
         clearRainfall();
-        currentDay = timeinfo.tm_mday;
       }
     }
   }

@@ -40,7 +40,8 @@ void readMoonPhase(struct sensorData *environment) {
  * Read eto
  */
 void readEto(struct sensorData *environment) {
-    calculateEto(environment, true);
+    // If is new hour, we calculate hour eto
+    calculateEto(environment, isNewHour);
 }
 
 /**

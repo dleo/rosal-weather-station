@@ -37,9 +37,9 @@ void addTipsToHour(int count)
  * @param hour 
  * @return float 
  */
-float getRainByHour(int hour)
+int getRainByHour(int hour)
 {
-  return rainfall.hourlyRainfall[hour % 24] * RAIN_TICK;
+  return rainfall.hourlyRainfall[hour % 24];
 }
 
 /**
