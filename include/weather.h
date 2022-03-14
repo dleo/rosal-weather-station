@@ -7,6 +7,9 @@
 #include "BME280I2C.h"
 #include "BH1750.h"
 #include <WiFiClientSecure.h>
+#include <TimeLib.h>
+#include "esp_deep_sleep.h"
+#include <esp_task_wdt.h>
 /**
  * Pin definitions
  */
@@ -80,7 +83,6 @@ extern DallasTemperature temperatureSensor;
 extern bool published;
 extern bool lowBattery;
 extern long initialMillis;
-extern float currentRain;
 extern struct tm timeinfo;
 extern PubSubClient mqtt;
 extern Adafruit_SI1145 uv;
@@ -129,10 +131,10 @@ boolean sendData(struct sensorData *enviroment);
 void connectAWS();
 void callback(char* topic, byte* payload, unsigned int length);
 void clearRainfall(void);
-void clearRainfallHour(int hourPtr);
 void addTipsToHour(int count);
 void printHourlyArray (void);
-int getRainByHour(int hour);
+int diffHour(int hour, int diff = 1);
+float getRainByHour(int hour);
 int last24(void);
 void readSensorsData(struct sensorData *environment);
 void readMoonPhase(struct sensorData *environment);
@@ -157,7 +159,7 @@ void readWindSpeed(struct sensorData *environment );
 void readWindDirection(struct sensorData *environment);
 void IRAM_ATTR windTick(void);
 int calculateDayOfYear(int day, int month, int year);
-
+bool isDay(time_t t);
 #endif
 
 

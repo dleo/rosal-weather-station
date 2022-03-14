@@ -12,6 +12,7 @@ bool wifiOn() {
     return true;
   }
   // We start by connecting to a WiFi network
+  esp_task_wdt_reset();             // Pet the dog
   debug("Connecting to %s", ssid);
   delay(1);
   WiFi.mode(WIFI_STA);
