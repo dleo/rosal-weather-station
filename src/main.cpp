@@ -329,7 +329,7 @@ void handle(void *paramsValue)
     {
       processSensorUpdates(&environment);
     }
-    // Try to sent data
+    // Try to sent data after de 10 seconds of startup
     if ((millis() - initialMillis) >= (10 * msFactor))
     {
       if (sendData(&environment))
