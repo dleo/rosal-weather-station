@@ -112,12 +112,13 @@ void readTemperature(struct sensorData *environment)
  */
 void readIrradiation(struct sensorData *environment)
 {
-  int radSolar = analogRead(SOLAR_RADIATION);
-  int ref = analogRead(REF_3V3);
+  float radSolar = analogRead(SOLAR_RADIATION);
+  float ref = analogRead(REF_3V3);
   debug("Solar radiation read %d \n", radSolar);
   debug("Ref radiation read %d \n", ref);
   float mV = (radSolar / ref) * 3300;
-  environment->irradiation = (int)mV / 1.67;
+  environment->irradiation = (mV / 1.67);
+  debug("Read irridation %.6f", environment->irradiation);
 }
 
 /**

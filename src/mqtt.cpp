@@ -32,8 +32,11 @@ void connectToMqtt()
  */
 void reconnect()
 {
+  int TRY = 10;
+  int c = 0;
+  esp_task_wdt_reset(); // Pet the dog
   // Loop until we're reconnected
-  while (!mqtt.connected())
+  while (!mqtt.connected() && c < TRY)
   {
     debug("Attempting MQTT re-connection...");
     // Attempt to connect
@@ -51,6 +54,7 @@ void reconnect()
       // Wait 5 seconds before retrying
       delay(1000);
     }
+    c++;
   }
 }
 
@@ -98,7 +102,7 @@ boolean sendData(struct sensorData *enviroment)
       connectToMqtt();
       getLocalTime(&timeinfo);
       debug("Attempting to publish MQTT...");
-      const int capacity = JSON_OBJECT_SIZE(22);
+      const int capacity = JSON_OBJECT_SIZE(23);
       StaticJsonDocument<capacity> doc;
       doc["date-time"] = now();
       doc["boot-count"] = bootCount;
@@ -121,7 +125,8 @@ boolean sendData(struct sensorData *enviroment)
       doc["eto"] = enviroment->eto;
       doc["eto_daily"] = enviroment->etoDaily;
       doc["rx-signal"] = enviroment->rxSignal;
-      doc["moon-phase"] = enviroment->moonPhaseString;
+      doc["moon-phase"] = enviroment->moonPhase;
+      doc['moon-phase-string'] = enviroment->moonPhaseString;
       char jsonBuffer[512];
 
       serializeJson(doc, jsonBuffer); // print to client;
