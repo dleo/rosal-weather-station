@@ -14,13 +14,6 @@ void clearRainfall(void)
   memset(&rainfall, 0x00, sizeof(rainfall));
 }
 
-/*
- * Zero out specific hour element of rainfall structure array
- */
-void clearRainfallHour(int hourPtr)
-{
-  rainfall.hourlyRainfall[hourPtr % 24] = 0;
-}
 
 /*
  * Increment current hour tip count
@@ -37,9 +30,11 @@ void addTipsToHour(int count)
  * @param hour 
  * @return float 
  */
-int getRainByHour(int hour)
+float getRainByHour(int hour)
 {
-  return rainfall.hourlyRainfall[hour % 24];
+  float rain = rainfall.hourlyRainfall[hour % 24] * RAIN_TICK;
+  debug("The rain for hour %d is %i", hour, rain);
+  return rain;
 }
 
 /**

@@ -17,26 +17,30 @@ meteorological data.
     :return: Value in radians
     :rtype: float
 */
-float deg2rad(float degrees) {
+float deg2rad(float degrees)
+{
     return degrees * (PI / 180.0);
 }
-    
 
 /**
     Check that *hours* is in the range 1 to 24.
 */
-bool check_day_hours(int hours, char* arg_name) {
-    if (!((0 <= hours) && (hours <= 24))) {
+bool check_day_hours(int hours, char *arg_name)
+{
+    if (!((0 <= hours) && (hours <= 24)))
+    {
         return false;
     }
     return true;
-} 
+}
 
 /**
     Check day of the year is valid.
 */
-bool check_doy(int doy) {
-    if (!((1 <= doy) && (doy <= 366))) {
+bool check_doy(int doy)
+{
+    if (!((1 <= doy) && (doy <= 366)))
+    {
         return false;
     }
 
@@ -46,19 +50,23 @@ bool check_doy(int doy) {
 /**
  * Check latitude radians is valid
  */
-bool check_latitude_rad(float latitude) {
-    if (!_MINLAT_RADIANS <= latitude <= _MAXLAT_RADIANS) {
+bool check_latitude_rad(float latitude)
+{
+    if (!_MINLAT_RADIANS <= latitude <= _MAXLAT_RADIANS)
+    {
         return false;
     }
     return true;
-} 
+}
 
 /**
     Solar declination can vary between -23.5 and +23.5 degrees.
     See http://mypages.iit.edu/~maslanka/SolarGeo.pdf
 */
-bool check_sol_dec_rad(float sd) {
-    if (!_MINSOLDEC_RADIANS <= sd <= _MAXSOLDEC_RADIANS) {
+bool check_sol_dec_rad(float sd)
+{
+    if (!_MINSOLDEC_RADIANS <= sd <= _MAXSOLDEC_RADIANS)
+    {
         return false;
     }
     return true;
@@ -68,7 +76,8 @@ bool check_sol_dec_rad(float sd) {
     Sunset hour angle has the range 0 to 180 degrees.
     See http://mypages.iit.edu/~maslanka/SolarGeo.pdf
 */
-bool check_sunset_hour_angle_rad(float sha) {
+bool check_sunset_hour_angle_rad(float sha)
+{
     if (!_MINSHA_RADIANS <= sha <= _MAXSHA_RADIANS)
         return false;
     return true;
@@ -83,7 +92,8 @@ bool check_sunset_hour_angle_rad(float sha) {
     :return: Saturation vapour pressure [kPa]
     :rtype: float
 */
-float svp_from_t(float t) {
+float svp_from_t(float t)
+{
     return 0.6108 * pow(M_E, ((17.27 * t) / (t + 237.3)));
 }
 
@@ -98,7 +108,8 @@ float svp_from_t(float t) {
     :return: atmospheric pressure [kPa]
     :rtype: float
 */
-float atm_pressure(float altitude) {
+float atm_pressure(float altitude)
+{
     float tmp = (293.0 - (0.0065 * altitude)) / 293.0;
     return pow(tmp, 5.26) * 101.3;
 }
@@ -117,8 +128,9 @@ float atm_pressure(float altitude) {
 
     Based on equation 48 in Allen et al (1998).
 */
-float avp_from_tmin(float tmin) {
-    return 0.611 * pow(M_E,((17.27 * tmin) / (tmin + 237.3)));
+float avp_from_tmin(float tmin)
+{
+    return 0.611 * pow(M_E, ((17.27 * tmin) / (tmin + 237.3)));
 }
 
 /**
@@ -137,7 +149,8 @@ float avp_from_tmin(float tmin) {
     :rtype: float
 
 */
-float avp_from_rhmin_rhmax(float svp_tmin, float svp_tmax, float rh_max, float rh_min) {
+float avp_from_rhmin_rhmax(float svp_tmin, float svp_tmax, float rh_max, float rh_min)
+{
     float tmp1 = svp_tmin * (rh_max / 100.0);
     float tmp2 = svp_tmax * (rh_min / 100.0);
     return (tmp1 + tmp2) / 2.0;
@@ -148,6 +161,7 @@ float avp_from_rhmin_rhmax(float svp_tmin, float svp_tmax, float rh_max, float r
     daily minimum temperature and maximum relative humidity
 
     Based on FAO equation 18 in Allen et al (1998).
+    Can be used as FAO equation 54
 
     :param svp_tmin: Saturation vapour pressure at daily minimum temperature
         [kPa]. Can be estimated using ``svp_from_t()``.
@@ -155,7 +169,8 @@ float avp_from_rhmin_rhmax(float svp_tmin, float svp_tmax, float rh_max, float r
     :return: Actual vapour pressure [kPa]
     :rtype: float
 */
-float avp_from_rhmax(float svp_tmin, float rh_max) {
+float avp_from_rhmax(float svp_tmin, float rh_max)
+{
     return svp_tmin * (rh_max / 100.0);
 }
 
@@ -174,7 +189,8 @@ float avp_from_rhmax(float svp_tmin, float rh_max) {
     :rtype: float
 
 */
-float avp_from_rhmean(float svp_tmin, float svp_tmax, float rh_mean) {
+float avp_from_rhmean(float svp_tmin, float svp_tmax, float rh_mean)
+{
     return (rh_mean / 100.0) * ((svp_tmax + svp_tmin) / 2.0);
 }
 
@@ -193,7 +209,8 @@ float avp_from_rhmean(float svp_tmin, float svp_tmax, float rh_mean) {
     :return: Actual vapour pressure [kPa]
     :rtype: float
 */
-float avp_from_tdew(float tdew) {
+float avp_from_tdew(float tdew)
+{
     return 0.6108 * pow(M_E, ((17.27 * tdew) / (tdew + 237.3)));
 }
 
@@ -221,7 +238,8 @@ float avp_from_tdew(float tdew) {
     :return: Actual vapour pressure [kPa]
     :rtype: float
 */
-float avp_from_twet_tdry(float twet, float tdry, float svp_twet, float psy_const) {
+float avp_from_twet_tdry(float twet, float tdry, float svp_twet, float psy_const)
+{
     return svp_twet - (psy_const * (tdry - twet));
 }
 
@@ -237,7 +255,8 @@ float avp_from_twet_tdry(float twet, float tdry, float svp_twet, float psy_const
     :return: Clear sky radiation [MJ m-2 day-1]
     :rtype: float
 */
-float cs_rad(float altitude, float et_rad)  {
+float cs_rad(float altitude, float et_rad)
+{
     return (0.00002 * altitude + 0.75) * et_rad;
 }
 
@@ -250,10 +269,10 @@ float cs_rad(float altitude, float et_rad)  {
     :return: Mean daily temperature [deg C]
     :rtype: float
 */
-float daily_mean_t(float tmin, float tmax) {
+float daily_mean_t(float tmin, float tmax)
+{
     return (tmax + tmin) / 2.0;
 }
-
 
 /**
     Calculate daylight hours from sunset hour angle.
@@ -266,7 +285,8 @@ float daily_mean_t(float tmin, float tmax) {
     :rtype: float
 
 */
-float daylight_hours(float sha) {
+float daylight_hours(float sha)
+{
     check_sunset_hour_angle_rad(sha);
     return (24.0 / PI) * sha;
 }
@@ -283,7 +303,8 @@ float daylight_hours(float sha) {
     :return: Saturation vapour pressure [kPa degC-1]
     :rtype: float
 */
-float delta_svp(float t) {
+float delta_svp(float t)
+{
     float tmp = 4098 * (0.6108 * pow(M_E, ((17.27 * t) / (t + 237.3))));
     return tmp / pow((t + 237.3), 2);
 }
@@ -302,7 +323,8 @@ float delta_svp(float t) {
     :return: Equivalent evaporation [mm day-1].
     :rtype: float
 **/
-float energy2evap(float energy) {
+float energy2evap(float energy)
+{
     return 0.408 * energy;
 }
 
@@ -329,7 +351,8 @@ float energy2evap(float energy) {
     :return: Daily extraterrestrial radiation [MJ m-2 day-1]
     :rtype: float
 */
-float et_rad(float latitude, float sol_dec, float sha, float ird) {
+float et_rad(float latitude, float sol_dec, float sha, float ird)
+{
     check_latitude_rad(latitude);
     check_sol_dec_rad(sol_dec);
     check_sunset_hour_angle_rad(sha);
@@ -339,7 +362,6 @@ float et_rad(float latitude, float sol_dec, float sha, float ird) {
     float tmp3 = cos(latitude) * cos(sol_dec) * sin(sha);
     return tmp1 * SOLAR_CONSTANT * ird * (tmp2 + tmp3);
 }
-
 
 /**
     Estimate reference evapotranspiration (ETo) from a hypothetical
@@ -368,18 +390,18 @@ float et_rad(float latitude, float sol_dec, float sha, float ird) {
         grass reference surface [mm day-1].
     :rtype: float
 */
-float fao56_penman_monteith(float net_rad, float t, float ws, float svp, float avp, float delta_svp, float psy, double shf) {
+float fao56_penman_monteith(float net_rad, float t, float ws, float svp, float avp, float delta_svp, float psy, double shf)
+{
     float a1 = (0.408 * (net_rad - shf) * delta_svp /
-          (delta_svp + (psy * (1 + 0.34 * ws))));
+                (delta_svp + (psy * (1 + 0.34 * ws))));
     float a2 = (900 * ws / t * (svp - avp) * psy /
-          (delta_svp + (psy * (1 + 0.34 * ws))));
+                (delta_svp + (psy * (1 + 0.34 * ws))));
     return a1 + a2;
 }
 
-
 /**
  * @brief Estimate reference evapotranspiration (ETo) hourly
- * 
+ *
  * @param net_rad Net radiation at crop surface [MJ m-2 day-1]
  * @param t Air temperature hourly at 2 m height hourly
  * @param psy Psychrometric constant [kPa deg C]. Can be estimatred usinn ``psy_const_of_psychrometer()`` or ``psy_const()``.
@@ -387,15 +409,14 @@ float fao56_penman_monteith(float net_rad, float t, float ws, float svp, float a
  * @param avp: Actual vapour pressure [kPa]. Can be estimated using a range of functions with names beginning with 'avp_from'.
  * @param ws: Wind speed at 2 m height [m s-1]. If not measured at
  * @param delta_svp: Slope of saturation vapour pressure curve [kPa degC-1]. Can be estimated using ``delta_svp()``.
- * @param shf: Soil heat flux (G) [MJ m-2 day-1](default is 0.0, which is reasonable for a daily or 10-day time steps). 
- *             For monthly time steps        *shf* can be estimated using ``monthly_soil_heat_flux()`` or
- *            ``monthly_soil_heat_flux2()``.
+ * @param g: Soil heat flux (G) [MJ m-2 hour-1]
  * @return float Reference evapotranspiration (ETo) from a hypothetical grass reference surface [mm hourly].
  */
-float fao56_eto_hr(float net_rad, float t, float psy, float ws, float delta_svp, float avp, float svp, double shf) {
+float fao56_eto_hr(float net_rad, float t, float psy, float ws, float delta_svp, float avp, float svp, double shf)
+{
     float denominator = delta_svp + (psy * (1 + 0.34 * ws));
-    float a1 = (0.408 * (net_rad - shf) * delta_svp);
-    float a2 = psy * (37/(t + 273)) * ws * (svp * t - avp);
+    float a1 = 0.408 * (net_rad - shf) * delta_svp;
+    float a2 = psy * (37 / (t + 273)) * ws * (svp - avp);
 
     return (a1 + a2) / denominator;
 }
@@ -421,7 +442,8 @@ float fao56_eto_hr(float net_rad, float t, float psy, float ws, float delta_svp,
     :return: Reference evapotranspiration over grass (ETo) [mm day-1]
     :rtype: float
 */
-float hargreaves(float tmin, float tmax, float tmean, float et_rad) {
+float hargreaves(float tmin, float tmax, float tmean, float et_rad)
+{
     // Note, multiplied by 0.408 to convert extraterrestrial radiation could
     // be given in MJ m-2 day-1 rather than as equivalent evaporation in
     // mm day-1
@@ -437,7 +459,8 @@ float hargreaves(float tmin, float tmax, float tmean, float et_rad) {
     :return: Inverse relative distance between earth and the sun
     :rtype: float
 */
-float inv_rel_dist_earth_sun(int day_of_year) {
+float inv_rel_dist_earth_sun(int day_of_year)
+{
     // TODO Look this function
     check_doy(day_of_year);
     return 1 + (0.033 * cos((2.0 * PI / 365.0) * day_of_year));
@@ -458,7 +481,8 @@ float inv_rel_dist_earth_sun(int day_of_year) {
     :return: Mean saturation vapour pressure (*es*) [kPa]
     :rtype: float
 */
-float mean_svp(float tmin, float tmax) {
+float mean_svp(float tmin, float tmax)
+{
     return (svp_from_t(tmin) + svp_from_t(tmax)) / 2.0;
 }
 
@@ -477,7 +501,8 @@ float mean_svp(float tmin, float tmax) {
     :return: Monthly soil heat flux (Gmonth) [MJ m-2 day-1]
     :rtype: float
 */
-float monthly_soil_heat_flux(float t_month_prev, float t_month_next) {
+float monthly_soil_heat_flux(float t_month_prev, float t_month_next)
+{
     return 0.07 * (t_month_next - t_month_prev);
 }
 
@@ -497,7 +522,8 @@ float monthly_soil_heat_flux(float t_month_prev, float t_month_next) {
     :return: Monthly soil heat flux (Gmonth) [MJ m-2 day-1]
     :rtype: float
 */
-float monthly_soil_heat_flux2(float t_month_prev, float t_month_cur) {
+float monthly_soil_heat_flux2(float t_month_prev, float t_month_cur)
+{
     return 0.14 * (t_month_cur - t_month_prev);
 }
 
@@ -525,7 +551,8 @@ float monthly_soil_heat_flux2(float t_month_prev, float t_month_cur) {
     :rtype: float
 
 */
-float net_in_sol_rad(float sol_rad, double albedo) {
+float net_in_sol_rad(float sol_rad, double albedo)
+{
     return (1 - albedo) * sol_rad;
 }
 
@@ -557,7 +584,8 @@ float net_in_sol_rad(float sol_rad, double albedo) {
     :return: Net outgoing longwave radiation [MJ m-2 day-1]
     :rtype: float
 */
-float net_out_lw_rad(float tmin, float tmax, float sol_rad, float cs_rad, float avp) {
+float net_out_lw_rad(float tmin, float tmax, float sol_rad, float cs_rad, float avp)
+{
     float tmp1 = (STEFAN_BOLTZMANN_CONSTANT * ((pow(tmax, 4) + pow(tmin, 4)) / 2));
     float tmp2 = (0.34 - (0.14 * sqrt(avp)));
     float tmp3 = 1.35 * (sol_rad / cs_rad) - 0.35;
@@ -581,7 +609,8 @@ float net_out_lw_rad(float tmin, float tmax, float sol_rad, float cs_rad, float 
     :return: Daily net radiation [MJ m-2 day-1].
     :rtype: float
 */
-float net_rad(float ni_sw_rad, float no_lw_rad) {
+float net_rad(float ni_sw_rad, float no_lw_rad)
+{
     return ni_sw_rad - no_lw_rad;
 }
 
@@ -599,10 +628,10 @@ float net_rad(float ni_sw_rad, float no_lw_rad) {
     :rtype: float
 
 */
-float psy_const(float atmos_pres) {
+float psy_const(float atmos_pres)
+{
     return 0.000665 * atmos_pres;
 }
-
 
 /**
     Calculate the psychrometric constant for different types of
@@ -623,19 +652,24 @@ float psy_const(float atmos_pres) {
     :rtype: float
 
 */
-float psy_const_of_psychrometer(float psychrometer, float atmos_pres) {
+float psy_const_of_psychrometer(float psychrometer, float atmos_pres)
+{
     float psy_coeff = 0;
-    //Select coefficient based on type of ventilation of the wet bulb
-    if (psychrometer == 1){
-      psy_coeff = 0.000662;
+    // Select coefficient based on type of ventilation of the wet bulb
+    if (psychrometer == 1)
+    {
+        psy_coeff = 0.000662;
     }
-    else if (psychrometer == 2){
-      psy_coeff = 0.000800;
+    else if (psychrometer == 2)
+    {
+        psy_coeff = 0.000800;
     }
-    else if (psychrometer == 3){
+    else if (psychrometer == 3)
+    {
         psy_coeff = 0.001200;
     }
-    else {
+    else
+    {
         return -1;
     }
 
@@ -656,10 +690,10 @@ float psy_const_of_psychrometer(float psychrometer, float atmos_pres) {
     :return: Relative humidity [%].
     :rtype: float
 */
-float rh_from_avp_svp(float avp, float svp) {
+float rh_from_avp_svp(float avp, float svp)
+{
     return 100.0 * avp / svp;
 }
-
 
 /**
     Calculate solar declination from day of the year.
@@ -670,8 +704,9 @@ float rh_from_avp_svp(float avp, float svp) {
     :return: solar declination [radians]
     :rtype: float
 */
-float sol_dec(float day_of_year) {
-    //TODO Look this function
+float sol_dec(float day_of_year)
+{
+    // TODO Look this function
     check_doy(day_of_year);
     return 0.409 * sin(((2.0 * PI / 365.0) * day_of_year - 1.39));
 }
@@ -698,12 +733,13 @@ float sol_dec(float day_of_year) {
     :return: Incoming solar (or shortwave) radiation [MJ m-2 day-1]
     :rtype: float
 */
-float sol_rad_from_sun_hours(int daylight_hours, int sunshine_hours, float et_rad) {
+float sol_rad_from_sun_hours(int daylight_hours, int sunshine_hours, float et_rad)
+{
     check_day_hours(sunshine_hours, "sun_hours");
     check_day_hours(daylight_hours, "daylight_hours");
 
-    //0.5 and 0.25 are default values of regression constants (Angstrom values)
-    //recommended by FAO when calibrated values are unavailable.
+    // 0.5 and 0.25 are default values of regression constants (Angstrom values)
+    // recommended by FAO when calibrated values are unavailable.
     return (0.5 * sunshine_hours / daylight_hours + 0.25) * et_rad;
 }
 
@@ -737,9 +773,10 @@ float sol_rad_from_sun_hours(int daylight_hours, int sunshine_hours, float et_ra
     :return: Incoming solar (or shortwave) radiation (Rs) [MJ m-2 day-1].
     :rtype: float
 */
-float sol_rad_from_t(float et_rad, float cs_rad, float tmin, float tmax, bool coastal) {
-    //Determine value of adjustment coefficient [deg C-0.5] for
-    //coastal/interior locations
+float sol_rad_from_t(float et_rad, float cs_rad, float tmin, float tmax, bool coastal)
+{
+    // Determine value of adjustment coefficient [deg C-0.5] for
+    // coastal/interior locations
     float adj = 0;
     if (coastal)
         adj = 0.19;
@@ -770,10 +807,10 @@ float sol_rad_from_t(float et_rad, float cs_rad, float tmin, float tmax, bool co
     :return: Incoming solar (or shortwave) radiation [MJ m-2 day-1].
     :rtype: float
 */
-float sol_rad_island(float et_rad) {
+float sol_rad_island(float et_rad)
+{
     return (0.7 * et_rad) - 4.0;
 }
-
 
 /**
     Calculate sunset hour angle (*Ws*) from latitude and solar
@@ -789,7 +826,8 @@ float sol_rad_island(float et_rad) {
     :return: Sunset hour angle [radians].
     :rtype: float
 */
-float sunset_hour_angle(float latitude, float sol_dec) {
+float sunset_hour_angle(float latitude, float sol_dec)
+{
     // TODO Look this functions
     check_latitude_rad(latitude);
     check_sol_dec_rad(sol_dec);
@@ -800,10 +838,8 @@ float sunset_hour_angle(float latitude, float sol_dec) {
     // See http://www.itacanet.org/the-sun-as-a-source-of-energy/
     // part-3-calculating-solar-angles/
     // Domain of acos is -1 <= x <= 1 radians (this is not mentioned in FAO-56!)
-    return 1/cos(fmin(fmax(cos_sha, -1.0), 1.0));
+    return 1 / cos(fmin(fmax(cos_sha, -1.0), 1.0));
 }
-
-
 
 /**
     Convert wind speed measured at different heights above the soil
@@ -817,6 +853,29 @@ float sunset_hour_angle(float latitude, float sol_dec) {
     :return: Wind speed at 2 m above the surface [m s-1]
     :rtype: float
 */
-float wind_speed_2m(float ws, float z) {
+float wind_speed_2m(float ws, float z)
+{
     return ws * (4.87 / log((67.8 * z) - 5.42));
+}
+
+/**
+    Estimate hourly soil heat flux (Ghour) from the Rn.
+
+    Based on equation 45 and 46 in Allen et al (1998). 
+
+    :param t_month_prev: Mean air temperature of the previous month
+        [deg Celsius]
+    :param t_month2_next: Mean air temperature of the next month [deg Celsius]
+    :return: Monthly soil heat flux (Gmonth) [MJ m-2 day-1]
+    :rtype: float
+*/
+float hourly_soil_heat_flux(float net_radiation, bool isDay)
+{
+    if (isDay)
+    {
+        return 0.1 * net_radiation;
+    } else 
+    {
+        return 0.5 * net_radiation;
+    }
 }
