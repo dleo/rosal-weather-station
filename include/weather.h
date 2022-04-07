@@ -19,18 +19,24 @@
 #define VOLT_PIN     33
 #define TEMP_PIN     4    // DS18B20 hooked up to GPIO pin 4
 #define LED_BUILTIN  2
+#define SOLAR_RADIATION 36  
+#define REF_3V3 39
+
+/**
+ * @brief Var definitios
+ * 
+ */
 #define WDT_TIMEOUT 60
-#define SEC 1E6           //Multiplier for uS based math
+#define SEC 1E6                             //Multiplier for uS based math
 #define S_IN_DAY   86400
 #define S_IN_HR     3600
 #define NO_RAIN_SAMPLES 2000
 #define SEALEVELPRESSURE_HPA (1013.25)
-#define LATITUDE (7.810944)                           //Latitude for Granja Rosal
+#define LATITUDE (7.810944)                  //Latitude for Granja Rosal
 #define SEA_LEVEL 1500
-#define SOLAR_RADIATION 36  
-#define REF_3V3 39
 #define RAIN_TICK (0.011)
-
+#define MOON_SYNODIC_PERIOD   29.530588853   // Period of moon cycle in days.
+#define	MOON_SYNODIC_OFFSET   2451550.26     // Reference cycle offset in days.
 
 /**
  * Struct definitions

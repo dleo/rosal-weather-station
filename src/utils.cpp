@@ -45,52 +45,32 @@ int moonPhases(unsigned long time)
 {
   // calculates the age of the moon phase(0 to 7)
   // there are eight stages, 0 is full moon and 4 is a new moon
-  double jd = 0; // Julian Date
-  double ed = 0; // days elapsed since start of full moon
-  int b = 0;
+  double jd = 0;              // Julian Date
+  float phase;
   jd = julianDate(time);
-  jd = int(jd - 2244116.75); // start at Jan 1 1972
-  jd /= 29.53;               // divide by the moon cycle
-  b = jd;
-  jd -= b;         // leaves the fractional part of jd
-  ed = jd * 29.53; // days elapsed this month
-  b = jd * 8 + 0.5;
-  b = b & 7;
-  return b;
+  // Calculate illumination (synodic) phase.
+  // From number of days since new moon on Julian date MOON_SYNODIC_OFFSET
+  // (1815UTC January 6, 2000), determine remainder of incomplete cycle.
+  phase = (jd - MOON_SYNODIC_OFFSET) / MOON_SYNODIC_PERIOD;
+  phase -= floor(phase);
+  
+  return (int)(phase * 8 + 0.5) % 8;
 }
 
 /**
- * Moon phase on string
+ * @brief Moon phase on string
+ * 
+ * @param phase 
+ * @return char* 
+ * 
  */
 char *moonPhaseToString(int phase)
 {
-  switch (phase)
-  {
-  case 0:
-    return "Full moon";
-    break;
-  case 1:
-    return "Waning Gibbous";
-    break;
-  case 2:
-    return "Last Quarter";
-    break;
-  case 3:
-    return "Old Crescent";
-    break;
-  case 4:
-    return "New Moon";
-    break;
-  case 5:
-    return "New Crescent";
-    break;
-  case 6:
-    return "First Quarter";
-    break;
-  case 7:
-    return "Waxing Gibbous";
-    break;
-  }
+  char *phaseNames[] = {"New Moon", "Old Crescent", "First Quarter",
+				   "Waxing Gibbous", "Full moon", "Waning Gibbous",
+				   "Last Quarter", "Morning Crescent"};
+
+  return phaseNames[phase];
 }
 
 /**

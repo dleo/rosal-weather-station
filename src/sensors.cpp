@@ -28,6 +28,7 @@ void readSensorsData(struct sensorData *environment)
 
 /**
  * Read moonphase
+ * @author David Lopez <dleo.lopez@gmail.com>
  */
 void readMoonPhase(struct sensorData *environment)
 {
@@ -40,7 +41,9 @@ void readMoonPhase(struct sensorData *environment)
 }
 
 /**
- * Read eto
+ * @brief Read eto
+ * 
+ * 
  */
 void readEto(struct sensorData *environment)
 {
