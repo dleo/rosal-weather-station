@@ -27,6 +27,7 @@ void readSensorsData(struct sensorData *environment) {
 
 /**
  * Read moonphase
+ * @author David Lopez <dleo.lopez@gmail.com>
  */
 void readMoonPhase(struct sensorData *environment) {
     // Calculate moon phase
@@ -37,7 +38,9 @@ void readMoonPhase(struct sensorData *environment) {
 }
 
 /**
- * Read eto
+ * @brief Read eto
+ * 
+ * 
  */
 void readEto(struct sensorData *environment) {
     // If is new hour, we calculate hour eto
@@ -125,8 +128,22 @@ void readRxSignal(struct sensorData *environment) {
  * 
  * @param environment 
  */
+<<<<<<< Updated upstream
 void readRain(struct sensorData *environment) {
   environment->rain = currentRain;
   environment->rainLastHour = getRainByHour(currentHour) * RAIN_TICK;
+=======
+void readRain(struct sensorData *environment)
+{
+  int diff = 1;
+  environment->rain = 0;
+  if (isNewHour)
+  {
+    environment->rain = getRainByHour(currentHour);
+    diff = 2;
+  }
+  int hour = diffHour(currentHour, 1);
+  environment->rainLastHour = getRainByHour(hour);
+>>>>>>> Stashed changes
   environment->rainLastDay = last24() * RAIN_TICK;
 }
